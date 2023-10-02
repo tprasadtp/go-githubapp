@@ -1,0 +1,134 @@
+name: testinfra
+runtime: yaml
+description: Create repositories required for integration testing tprasadtp/go-githubapp.
+config:
+  secret: false
+  repo-readme:
+    type: string
+    default: |
+      # About This Repository
+
+      This repository is used for integration tests for [github.com/tprasadtp/go-githubapp].
+
+      [github.com/tprasadtp/go-githubapp]: https://github.com/tprasadtp/go-githubapp
+
+resources:
+  repo-metadata:
+    type: github:Repository
+    properties:
+      name: ".github"
+      visibility: public
+      description: "Organization metadata"
+      hasIssues: false
+      hasWiki: false
+      hasProjects: false
+      hasDownloads: false
+      hasDiscussions:
+      vulnerabilityAlerts: false
+      deleteBranchOnMerge: true # Automatically delete head branches.
+      allowMergeCommit: false # Disable merge commit.
+      allowUpdateBranch: true # Always suggest updating pull request branches.
+      ignoreVulnerabilityAlertsDuringRead: true # Workaround for bot token limitation.
+
+  repo-one:
+    type: github:Repository
+    properties:
+      name: "go-githubapp-repo-one"
+      visibility: private
+      description: "Test repository for Integration tests for https://github.com/tprasadtp/go-githubapp"
+      hasIssues: true
+      hasWiki: false
+      hasProjects: false
+      hasDownloads: false
+      isTemplate: false
+      vulnerabilityAlerts: false
+      deleteBranchOnMerge: true # Automatically delete head branches.
+      allowMergeCommit: false # Disable merge commit.
+      allowUpdateBranch: true # Always suggest updating pull request branches.
+      ignoreVulnerabilityAlertsDuringRead: true # Workaround for bot token limitation.
+
+  repo-two:
+    type: github:Repository
+    properties:
+      name: "go-githubapp-repo-two"
+      visibility: private
+      description: "Test repository for Integration tests for https://github.com/tprasadtp/go-githubapp"
+      hasIssues: true
+      hasWiki: false
+      hasProjects: false
+      hasDownloads: false
+      isTemplate: false
+      vulnerabilityAlerts: false
+      deleteBranchOnMerge: true # Automatically delete head branches.
+      allowMergeCommit: false # Disable merge commit.
+      allowUpdateBranch: true # Always suggest updating pull request branches.
+      ignoreVulnerabilityAlertsDuringRead: true # Workaround for bot token limitation.
+
+  repo-no-access:
+    type: github:Repository
+    properties:
+      name: "go-githubapp-repo-no-access"
+      visibility: private
+      description: "Test repository for Integration tests for https://github.com/tprasadtp/go-githubapp"
+      hasIssues: true
+      hasWiki: false
+      hasProjects: false
+      isTemplate: false
+      vulnerabilityAlerts: false
+      deleteBranchOnMerge: true # Automatically delete head branches.
+      allowMergeCommit: false # Disable merge commit.
+      allowUpdateBranch: true # Always suggest updating pull request branches.
+      ignoreVulnerabilityAlertsDuringRead: true # Workaround for bot token limitation.
+
+  repo-metadata-profile-readme:
+    type: github:RepositoryFile
+    properties:
+      repository: ${repo-metadata.name}
+      file: profile/README.md
+      content: |
+        # About This Organization
+
+        This organization and repositories are used for integration tests
+        for [github.com/tprasadtp/go-githubapp].
+
+        [github.com/tprasadtp/go-githubapp]: https://github.com/tprasadtp/go-githubapp
+      commitMessage: "Update README.md"
+      overwriteOnCreate: true
+
+  repo-metadata-readme:
+    type: github:RepositoryFile
+    properties:
+      repository: ${repo-metadata.name}
+      file: README.md
+      content: |
+        # .github
+
+      commitMessage: "Update README.md"
+      overwriteOnCreate: true
+
+  repo-one-readme:
+    type: github:RepositoryFile
+    properties:
+      repository: ${repo-one.name}
+      file: README.md
+      content: ${repo-readme}
+      commitMessage: "Update profile/README.md"
+      overwriteOnCreate: true
+
+  repo-two-readme:
+    type: github:RepositoryFile
+    properties:
+      repository: ${repo-two.name}
+      file: README.md
+      content: ${repo-readme}
+      commitMessage: "Update README.md"
+      overwriteOnCreate: true
+
+  repo-no-access-readme:
+    type: github:RepositoryFile
+    properties:
+      repository: ${repo-no-access.name}
+      file: README.md
+      content: ${repo-readme}
+      commitMessage: "Update README.md"
+      overwriteOnCreate: true

@@ -1,0 +1,15 @@
+root = true
+
+# Default
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+max_line_length = 80
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Makefiles and Make Templates
+[{*.yml,*.yaml}]
+indent_size = 2
