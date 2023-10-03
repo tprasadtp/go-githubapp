@@ -6,6 +6,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
@@ -23,6 +24,4 @@ jobs:
           go-version-file: go.mod
 
       - name: Run tests
-        run: |
-          go env
-          go test ./...
+        run: go test -covermode=atomic -coverprofile coverage.out  ./...
