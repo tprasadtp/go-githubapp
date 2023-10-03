@@ -210,7 +210,7 @@ func TestNewTransport(t *testing.T) {
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithEndpoint("http://308489a4-2f67-4d6a-9d8a-11d21f44bfa0-endpoint.go-githubapp.test")},
 			appID:   99,
-			err:     ErrAppCredentials,
+			err:     ErrAppInstallation,
 		},
 	}
 	for _, tc := range tt {

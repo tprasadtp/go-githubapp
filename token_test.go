@@ -221,9 +221,8 @@ func TestInstallationToken_Revoke(t *testing.T) {
 			ctx: context.Background(),
 			rt: internal.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
 				t.Helper()
-				t.Logf("request=%v", r)
 				if r.Header.Get(authzHeader) == "" {
-					t.Errorf("Authorization header is empty")
+					t.Errorf("%s header is empty", authzHeader)
 				}
 
 				if r.Header.Get(apiVersionHeader) == "" {
@@ -231,7 +230,7 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				}
 
 				if !strings.EqualFold(r.Method, http.MethodDelete) {
-					t.Errorf("Method should be DELETE")
+					t.Errorf("request method should be DELETE")
 				}
 
 				resp := httptest.NewRecorder()
@@ -252,7 +251,6 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				Owner:          "gh-integration-tests",
 			},
 			rt: internal.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
-				t.Logf("request=%v", r)
 				resp := httptest.NewRecorder()
 				resp.WriteHeader(http.StatusNoContent)
 				return resp.Result(), nil
@@ -268,8 +266,10 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				if err != nil {
 					t.Errorf("unexpected error: %s", err)
 				}
-				if !tc.token.Exp.Before(time.Now()) {
-					t.Errorf("token timestamp is not modified")
+
+				// ensure is valid returns false.
+				if tc.token.IsValid() {
+					t.Errorf("Token is still valid after revoke: %#v", tc.token)
 				}
 			} else if !tc.ok && err == nil {
 				t.Errorf("expected error, bit got nil")
