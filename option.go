@@ -72,13 +72,11 @@ var (
 )
 
 // WithEndpoint configures [Transport] to use custom REST API(v3) endpoint.
-// for authenticating as app, obtaining installation metadata and
-// creating installation access tokens.
+// for authenticating as app, obtaining installation metadata and creating
+// installation access tokens. This MUST be REST(v3) endpoint even though
+// client might be using GitHub GraphQL API.
 //
-// When not specified or empty, [DefaultEndpoint] is used.
-//
-// This MUST be REST(v3) endpoint even though client might be using
-// GitHub GraphQL API.
+// When not specified or empty, "https://api.githhub.com/" is used.
 func WithEndpoint(endpoint string) Option {
 	if endpoint == "" {
 		return nil
@@ -206,7 +204,8 @@ func WithOwner(username string) Option {
 // WithInstallationID configures [Transport] to use installation id specified.
 //
 // This is useful if it is required to access all repositories available for an
-// installation without specifying them individually.
+// installation without specifying them individually or if building [Transport]
+// from data provided by [WebHook].
 func WithInstallationID(id uint64) Option {
 	return &funcOption{
 		f: func(t *Transport) error {
@@ -224,7 +223,7 @@ func WithInstallationID(id uint64) Option {
 //
 // Permissions MUST be specified in <scope>:<access> format.
 // Where scope is permission scope like "issues" and access can be one of
-// "read" or "write". Permissions MUST be lowercase.
+// "read", "write" or "admin".
 func WithPermissions(permissions ...string) Option {
 	if len(permissions) == 0 {
 		return nil
@@ -234,6 +233,7 @@ func WithPermissions(permissions ...string) Option {
 			m := make(map[string]string, len(permissions))
 			invalid := make([]string, 0, len(permissions))
 			for _, item := range permissions {
+				item = strings.ToLower(item)
 				if permissionRegEx.MatchString(item) {
 					scope, action, _ := strings.Cut(item, ":")
 					m[scope] = action

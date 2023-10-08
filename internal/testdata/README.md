@@ -1,8 +1,6 @@
 # Generating test data
 
 For generating test data, use a non production isolated github organization.
-Generating test data requires creating and installing a github app with at least
-`issues:write` and `contents:read` permissions on the repository.
 
 ## Generating WebHook test data
 

@@ -20,10 +20,7 @@ var (
 // InstallationToken is an installation access token from GitHub.
 type InstallationToken struct {
 	// Installation access token. Typically starts with "ghs_".
-	Token string `json:"token" yaml:"token"`
-
-	// GitHub API endpoint. This is also used for token revocation.
-	Server string `json:"server,omitempty" yaml:"server,omitempty"`
+	Token string `json:"token,omitempty" yaml:"token,omitempty"`
 
 	// GitHub app ID.
 	AppID uint64 `json:"app_id,omitempty" yaml:"appID,omitempty"`
@@ -33,6 +30,10 @@ type InstallationToken struct {
 
 	// Installation ID for the app.
 	InstallationID uint64 `json:"installation_id,omitempty" yaml:"installationID,omitempty"`
+
+	// GitHub API endpoint. This is also used for token revocation.
+	// If omitted assumes default value of "https://api.githhub.com/".
+	Server string `json:"server,omitempty" yaml:"server,omitempty"`
 
 	// Token exp time.
 	Exp time.Time `json:"exp,omitempty" yaml:"exp,omitempty"`
@@ -53,6 +54,7 @@ type InstallationToken struct {
 	BotUsername string
 
 	// BotCommitterEmail is committer email to use to attribute commits to the bot.
+	// This is in the form "<user-id>+<app-name>[bot]@users.noreply.github.com".
 	BotCommitterEmail string
 }
 
@@ -99,15 +101,7 @@ func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) er
 	if err != nil {
 		return fmt.Errorf("githubapp: failed to revoke token - invalid server url: %w", err)
 	}
-
-	// url.JoinPath only returns an error when parsing base path fails.
-	// but always base path is u.Path which itself is returned by url.Parse.
-	// Thus this error check is redundant, but as it is an implementation detail,
-	// we check for errors anyways.
-	u.Path, err = url.JoinPath(u.Path, "installation", "token")
-	if err != nil {
-		return fmt.Errorf("githubapp: failed to revoke token - invalid server url: %w", err)
-	}
+	u = u.JoinPath(u.Path, "installation", "token")
 
 	switch u.Scheme {
 	case "http", "https":

@@ -7,8 +7,7 @@
 // Types are just enough for app endpoints required by library to work
 // and should be considered incomplete. Use [github.com/google/go-github/github]
 // or [github.com/shurcooL/githubv4] to access the GitHub API with
-// [github.com/tprasadtp/go-githubapp.Transport] for automatically authenticate
-// as GitHub app.
+// [github.com/tprasadtp/go-githubapp.Transport].
 package api
 
 import (

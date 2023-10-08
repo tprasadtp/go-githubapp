@@ -49,13 +49,9 @@ func ctxHasKeyJWT(ctx context.Context) bool {
 // http.RoundTripper and provides GitHub Apps authenticating as a
 // GitHub App or as an GitHub app installation.
 //
-// # Headers
-//
-//   - 'Authorization' header is automatically populated with suitable installation
-//     token or JWT token for all requests. If it already exists it is ignored.
-//   - 'X-GitHub-Api-Version' header is set to to '2022-11-28' if not already set.
-//   - 'Accept' header is automatically set to 'application/vnd.github.v3+json' if not
-//     already set.
+// 'Authorization' header is automatically populated with suitable installation
+// token or JWT token for all requests. If it already exists it is ignored.
+// Token renewal requests will always override 'Accept' and "X-GitHub-Api-Version" headers.
 type Transport struct {
 	appID          uint64            // app ID
 	appSlug        string            // app slug/name
@@ -78,7 +74,7 @@ type Transport struct {
 // How [Transport] authenticates depends on installation options specified.
 //
 //   - If no installation options are specified, then [Transport] can only authenticate
-//     as app. using JWT. This is not something you want typically, as very limited number
+//     as app (using JWT). This is not something you want typically, as very limited number
 //     of actions like accessing available installations.
 //   - Use [WithInstallationID] to have access to all permissions available to the
 //     installation including organization scopes and repositories. This can be used
@@ -534,16 +530,6 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if ctxHasKeyJWT(ctx) {
 		clone.Header.Set(acceptHeader, acceptHeaderValue)
 		clone.Header.Set(apiVersionHeader, apiVersionHeaderValue)
-	} else {
-		// Add Accept "application/vnd.github.v3+json" header if not already present.
-		if clone.Header.Get(acceptHeader) == "" {
-			clone.Header.Set(acceptHeader, acceptHeaderValue)
-		}
-
-		// Add X-GitHub-Api-Version "2022-11-28" header if not already present.
-		if clone.Header.Get(apiVersionHeader) == "" {
-			clone.Header.Set(apiVersionHeader, apiVersionHeaderValue)
-		}
 	}
 
 	// installation id is populated when WithRepositories or WithOrganization

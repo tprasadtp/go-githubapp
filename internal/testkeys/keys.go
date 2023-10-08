@@ -32,24 +32,16 @@ var (
 // Ephemeral RSA-1024 key which is unique per execution of the binary.
 func RSA1024() *rsa.PrivateKey {
 	rsa1024Once.Do(func() {
-		var err error
 		//nolint:gosec // check to ensure key size < 2048 is rejected.
-		rsa1024Private, err = rsa.GenerateKey(rand.Reader, 1024)
-		if err != nil {
-			panic(err)
-		}
+		rsa1024Private, _ = rsa.GenerateKey(rand.Reader, 1024)
 	})
 	return rsa1024Private
 }
 
-// Ephemeral RSA-1024 key which is unique per execution of the binary.
+// Ephemeral RSA-2048 key which is unique per execution of the binary.
 func RSA2048() *rsa.PrivateKey {
 	rsa2048Once.Do(func() {
-		var err error
-		rsa2048Private, err = rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			panic(err)
-		}
+		rsa2048Private, _ = rsa.GenerateKey(rand.Reader, 2048)
 	})
 	return rsa2048Private
 }
@@ -57,11 +49,7 @@ func RSA2048() *rsa.PrivateKey {
 // Ephemeral ECDSA-P256 key which is unique per execution of the binary.
 func ECP256() *ecdsa.PrivateKey {
 	ecdsaP256Once.Do(func() {
-		var err error
-		ecdsaP256Private, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		if err != nil {
-			panic(err)
-		}
+		ecdsaP256Private, _ = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	})
 	return ecdsaP256Private
 }
