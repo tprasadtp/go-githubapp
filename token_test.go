@@ -6,7 +6,6 @@ package githubapp
 import (
 	"context"
 	"crypto"
-	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -286,7 +285,7 @@ func TestNewInstallationToken(t *testing.T) {
 		ctx     context.Context
 		signer  crypto.Signer
 		appID   uint64
-		err     error
+		ok      bool
 		// rt      http.RoundTripper
 	}
 
@@ -296,29 +295,32 @@ func TestNewInstallationToken(t *testing.T) {
 			ctx:     context.Background(),
 			options: []Option{WithInstallationID(99)},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "invalid-options-invalid-app-id",
 			ctx:     context.Background(),
 			options: []Option{WithInstallationID(99)},
 			signer:  testkeys.RSA2048(),
-			err:     ErrOptions,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			token, err := NewInstallationToken(tc.ctx, tc.appID, tc.signer, tc.options...)
-			if !errors.Is(err, tc.err) {
-				t.Errorf("expected error=%s, got=%s", tc.err, err)
-			}
-			if !reflect.DeepEqual(tc.token, token) {
-				t.Errorf("expected=%#v, got=%#v", tc.token, token)
-			}
+			if tc.ok {
+				if err != nil {
+					t.Errorf("expected no error, got %s", err)
+				}
 
-			if err != nil {
-				if !tc.token.Exp.Before(time.Now()) {
-					t.Errorf("token timestamp is not modified")
+				if !token.IsValid() {
+					t.Errorf("expected token to be valid")
+				}
+			} else {
+				if err == nil {
+					t.Errorf("expected an error, got nil")
+				}
+
+				if !reflect.DeepEqual(token, InstallationToken{}) {
+					t.Errorf("expected token to be empty")
 				}
 			}
 		})

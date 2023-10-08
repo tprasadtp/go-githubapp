@@ -93,7 +93,7 @@ func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) er
 
 	server := t.Server
 	if t.Server == "" {
-		server = DefaultEndpoint
+		server = defaultEndpoint
 	}
 	u, err := url.Parse(server)
 	if err != nil {

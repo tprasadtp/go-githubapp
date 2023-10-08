@@ -25,12 +25,6 @@ var (
 	_ slog.LogValuer = (*JWT)(nil)
 )
 
-const (
-	// ErrMintJWT returned when minting JWT token fails. This can happen if
-	// signer backing JWT is remote and [crypto.Sign] returns an error.
-	ErrMintJWT = Error("githubapp(jwt): failed to mint JWT")
-)
-
 // JWT is JWT token used to authenticate as app.
 type JWT struct {
 	// JWT token.
@@ -98,7 +92,7 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 
 	signingString, err := t.SigningString()
 	if err != nil {
-		return JWT{}, fmt.Errorf("%w: failed to get jwt string: %w", ErrMintJWT, err)
+		return JWT{}, fmt.Errorf("githubapp(jwt): failed to get jwt string: %w", err)
 	}
 
 	hasher := sha256.New()
@@ -109,21 +103,17 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 	// github.com/tprasadtp/cryptokms supports SignContext. try to check if we can use
 	// context aware signer, fallback to default.
 	if cs, ok := s.internal.(contextSigner); ok {
-		signature, err = cs.SignContext(ctx, rand.Reader, hasher.Sum(nil), crypto.SHA256)
-	} else {
-		// Signer is not context aware, so check if context is still valid.
-		err = context.Cause(ctx)
-		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				return JWT{}, fmt.Errorf("%w: %w", ErrMintJWT, err)
-			}
-			return JWT{}, fmt.Errorf("%w: %w: %w", ErrMintJWT, context.Canceled, err)
+		if ctx == nil {
+			signature, err = cs.SignContext(context.Background(), rand.Reader, hasher.Sum(nil), crypto.SHA256)
+		} else {
+			signature, err = cs.SignContext(ctx, rand.Reader, hasher.Sum(nil), crypto.SHA256)
 		}
+	} else {
 		signature, err = s.internal.Sign(rand.Reader, hasher.Sum(nil), crypto.SHA256)
 	}
 
 	if err != nil {
-		return JWT{}, fmt.Errorf("%w: %w", ErrMintJWT, err)
+		return JWT{}, fmt.Errorf("githubapp(jwt): failed to mint JWT: %w", err)
 	}
 
 	buf := bytes.NewBufferString(signingString)
@@ -153,18 +143,18 @@ func NewJWT(ctx context.Context, appid uint64, signer crypto.Signer) (JWT, error
 	}
 
 	if err != nil {
-		return JWT{}, fmt.Errorf("%w: %w", ErrOptions, err)
+		return JWT{}, fmt.Errorf("githubapp(jwt): failed to mint JWT: %w", err)
 	}
 
 	switch v := signer.Public().(type) {
 	case *rsa.PublicKey:
 		if v.N.BitLen() < 2048 {
 			return JWT{},
-				fmt.Errorf("%w: rsa keys size(%d) < 2048 bits", ErrOptions, v.N.BitLen())
+				fmt.Errorf("githubapp(jwt): rsa keys size(%d) < 2048 bits", v.N.BitLen())
 		}
 		minter := &jwtRS256{internal: signer}
 		return minter.Mint(ctx, appid, time.Now())
 	default:
-		return JWT{}, fmt.Errorf("%w: unsupported key type: %T", ErrOptions, v)
+		return JWT{}, fmt.Errorf("githubapp(jwt): unsupported key type: %T", v)
 	}
 }

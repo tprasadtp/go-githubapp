@@ -26,7 +26,7 @@
   },
   {
     "color": "e4e669",
-    "description": "Issue or PR is invalid or spam",
+    "description": "Issue or PR is invalid",
     "name": "invalid"
   },
   {
@@ -46,7 +46,7 @@
   },
   {
     "color": "7eed76",
-    "description": "Feature requests",
+    "description": "Feature",
     "name": "feature"
   },
   {
