@@ -64,7 +64,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 		},
 		{
 			name:   "invalid-method",
-			err:    ErrWebHookRequest,
+			err:    ErrWebHookMethod,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
@@ -121,7 +121,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 		},
 		{
 			name:   "unsupported-content-type-header",
-			err:    ErrWebHookRequest,
+			err:    ErrWebHookContentType,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
@@ -136,7 +136,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 		},
 		{
 			name:   "missing-signature-header",
-			err:    ErrWebhookSignature,
+			err:    ErrWebHookRequest,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
@@ -151,7 +151,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 		},
 		{
 			name:   "missing-signature-prefix",
-			err:    ErrWebhookSignature,
+			err:    ErrWebHookRequest,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
@@ -168,7 +168,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 		},
 		{
 			name:   "signature-prefix-invalid",
-			err:    ErrWebhookSignature,
+			err:    ErrWebHookRequest,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
@@ -184,25 +184,8 @@ func TestVerifyWebHookSignature(t *testing.T) {
 			}(),
 		},
 		{
-			name:   "payload-does-not-match-signature",
-			err:    ErrWebhookSignature,
-			secret: secret,
-			request: func() *http.Request {
-				r := httptest.NewRequest(
-					http.MethodPost,
-					"/",
-					bytes.NewBufferString("something"),
-				)
-				r.Header = maps.Clone(headers)
-				r.Header.Set(
-					signatureSHA256Header,
-					"sha1=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
-				return r
-			}(),
-		},
-		{
 			name:   "signature-not-hex-encoded",
-			err:    ErrWebhookSignature,
+			err:    ErrWebHookRequest,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
@@ -219,27 +202,13 @@ func TestVerifyWebHookSignature(t *testing.T) {
 		},
 		{
 			name:   "error-reading-payload",
-			err:    os.ErrClosed,
+			err:    ErrWebHookRequest,
 			secret: secret,
 			request: func() *http.Request {
 				r := httptest.NewRequest(
 					http.MethodPost,
 					"/",
 					&errReader{},
-				)
-				r.Header = maps.Clone(headers)
-				return r
-			}(),
-		},
-		{
-			name:   "payload-does-not-match-signature",
-			err:    ErrWebhookSignature,
-			secret: secret,
-			request: func() *http.Request {
-				r := httptest.NewRequest(
-					http.MethodPost,
-					"/",
-					bytes.NewBufferString("something"),
 				)
 				r.Header = maps.Clone(headers)
 				return r
@@ -261,6 +230,20 @@ func TestVerifyWebHookSignature(t *testing.T) {
 			}(),
 		},
 		{
+			name:   "payload-does-not-match-signature",
+			err:    ErrWebhookSignature,
+			secret: secret,
+			request: func() *http.Request {
+				r := httptest.NewRequest(
+					http.MethodPost,
+					"/",
+					bytes.NewBufferString("something"),
+				)
+				r.Header = maps.Clone(headers)
+				return r
+			}(),
+		},
+		{
 			name:   "signature-valid",
 			secret: secret,
 			request: func() *http.Request {
@@ -276,7 +259,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 				ID:               "292430182",
 				Event:            "issues",
 				Payload:          []byte(payload),
-				Delivery:         "72d3162e-cc78-11e3-81ab-4c9367dc0958",
+				DeliveryID:       "72d3162e-cc78-11e3-81ab-4c9367dc0958",
 				Signature:        "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17",
 				InstallationID:   79929171,
 				InstallationType: "repository",
@@ -330,7 +313,7 @@ func TestVerifyWebHookSignature_Replay(t *testing.T) {
 			if werr != nil {
 				t.Errorf("expected no error, got: %s", werr)
 			}
-			if webhook.Delivery != strings.TrimSuffix(tc, ".replay") {
+			if webhook.DeliveryID != strings.TrimSuffix(tc, ".replay") {
 				t.Errorf("webhook.Delivery id is not valid")
 			}
 		})

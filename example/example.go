@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+// An example CLI which can fetch installation tokens for a github app
+// and act like git credentials plugin.
 package main
 
 import (
@@ -24,6 +26,7 @@ var installationID uint64
 var repos string
 var gitCredMode bool
 
+//nolint:forbidigo // example script.
 func main() {
 	flag.StringVar(&privFile, "key", "", "private key")
 	flag.Uint64Var(&appID, "app-id", 0, "app id")

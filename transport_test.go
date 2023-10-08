@@ -6,7 +6,6 @@ package githubapp
 import (
 	"context"
 	"crypto"
-	"errors"
 	"maps"
 	"reflect"
 	"slices"
@@ -91,7 +90,7 @@ func TestCtxJWT(t *testing.T) {
 func TestNewTransport(t *testing.T) {
 	type testCase struct {
 		name    string
-		err     error
+		ok      bool
 		appID   uint64
 		signer  crypto.Signer
 		options []Option
@@ -101,116 +100,99 @@ func TestNewTransport(t *testing.T) {
 	tt := []testCase{
 		{
 			name: "no-signer",
-			err:  ErrOptions,
 		},
 		{
 			name:   "no-app-id",
 			signer: testkeys.RSA2048(),
-			err:    ErrOptions,
 		},
 		{
 			name:    "endpoint-unsupported-scheme",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithEndpoint("file://")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "endpoint-with-query",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithEndpoint("https://localhost:9999/foo?test=1")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "endpoint-with-fragment",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithEndpoint("https://localhost:9999/foo#Fragment")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "owner-invalid-name-empty",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithOwner("")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "owner-invalid-name-has-dots",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithOwner("foo.bar")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "owner-invalid-name-has-special-chars",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithOwner("foo?")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "owner-invalid-name-end-with-dot",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithOwner("foo.")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "repo-invalid-with-special-char",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithOwner("username"), WithRepositories("foo?")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "repo-invalid-only-dot-is-reserved",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithRepositories("foo/.")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "repo-invalid-dot-with-special-char",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithRepositories("foo/.=")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "repo-invalid-no-owner-no-install-id",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithRepositories("foo", "bar")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "repo-unsupported-key-ecdsa",
 			signer:  testkeys.ECP256(),
 			options: []Option{WithRepositories("foo/bar", "foo/baz")},
 			appID:   99,
-			err:     ErrOptions,
 		}, {
 			name:    "repo-unsupported-key-rsa-1024",
 			signer:  testkeys.RSA1024(),
 			options: []Option{WithRepositories("foo/bar", "foo/baz")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "endpoint-invalid-url",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithEndpoint("file://  foo/bar")},
 			appID:   99,
-			err:     ErrOptions,
 		},
 		{
 			name:    "endpoint-unreachable",
 			signer:  testkeys.RSA2048(),
 			options: []Option{WithEndpoint("http://308489a4-2f67-4d6a-9d8a-11d21f44bfa0-endpoint.go-githubapp.test")},
 			appID:   99,
-			err:     ErrAppInstallation,
 		},
 	}
 	for _, tc := range tt {
@@ -221,12 +203,22 @@ func TestNewTransport(t *testing.T) {
 				tc.signer,
 				tc.options...,
 			)
-			if !errors.Is(err, tc.err) {
-				t.Errorf("expected error=%s, got %s", tc.err, err)
-			}
 
-			if !transportCmp(t, tc.expect, transport) {
-				t.Errorf("expected:%#v, got=%#v", tc.expect, transport)
+			if tc.ok {
+				if err != nil {
+					t.Errorf("expected no error, got %s", err)
+				}
+				if !transportCmp(t, tc.expect, transport) {
+					t.Errorf("expected:%#v, got=%#v", tc.expect, transport)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("expected an error, got nil")
+				}
+
+				if transport != nil {
+					t.Errorf("if error is expected to be not nil, transport must be nil")
+				}
 			}
 		})
 	}

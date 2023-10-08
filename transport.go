@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
@@ -24,7 +26,6 @@ import (
 
 var (
 	_ http.RoundTripper = (*Transport)(nil)
-	_ http.RoundTripper = (*RoundTripper)(nil)
 )
 
 // keyJWT is context key to indicate round tripper needs to to use jwt
@@ -44,23 +45,17 @@ func ctxHasKeyJWT(ctx context.Context) bool {
 	return ctx.Value(keyJWT{}) != nil
 }
 
-// RoundTripper is an alias for [Transport], which implements [http.RoundTripper].
-type RoundTripper = Transport
-
 // Transport provides a [http.RoundTripper] by wrapping an existing
 // http.RoundTripper and provides GitHub Apps authenticating as a
-// GitHub App or GitHub installation.
+// GitHub App or as an GitHub app installation.
 //
 // # Headers
 //
-//   - Transport automatically adds 'Authorization' header with suitable installation
-//     token or JWT token for all requests. If there already exists 'Authorization'
-//     header, it is ignored.
-//   - Transport automatically sets 'X-GitHub-Api-Version' header to '2022-11-28'
-//     if not already set. (except for token refresh where it is set to '2022-11-28' regardless)
-//   - Transport automatically sets 'Accept' header to 'application/vnd.github.v3+json'
-//     if not already set. (except for token refresh where it is set to 'application/vnd.github.v3+json'
-//     regardless of its existing value)
+//   - 'Authorization' header is automatically populated with suitable installation
+//     token or JWT token for all requests. If it already exists it is ignored.
+//   - 'X-GitHub-Api-Version' header is set to to '2022-11-28' if not already set.
+//   - 'Accept' header is automatically set to 'application/vnd.github.v3+json' if not
+//     already set.
 type Transport struct {
 	appID          uint64            // app ID
 	appSlug        string            // app slug/name
@@ -78,30 +73,6 @@ type Transport struct {
 	scopes         map[string]string // scoped permissions
 }
 
-const (
-	// ErrOptions is returned by when provided options or arguments are invalid.
-	ErrOptions = Error("githubapp: invalid options")
-
-	// ErrAppCredentials is returned by [NewTransport] when github app is invalid.
-	// This is returned when app credentials are invalid or app installation is
-	// invalid or not found.
-	ErrAppCredentials = Error("githubapp: app credentials are invalid")
-
-	// ErrAppInstallation is returned when github app installation is invalid or not available.
-	ErrAppInstallation = Error("githubapp: failed to verify installation")
-
-	// ErrInstallationToken is returned when installation token cannot be obtained.
-	ErrInstallationToken = Error("githubapp: unable to obtain installation token")
-
-	// ErrAPIEndpoint is returned when Github API responds with an error
-	// or unexpected manner.
-	ErrAPIEndpoint = Error("githubapp: server api error")
-
-	// ErrScopedPermissions is returned when app's installation is missing
-	// permissions specified by scopes or scoped permissions are invalid.
-	ErrScopedPermissions = Error("githubapp: invalid or missing permissions")
-)
-
 // NewTransport creates a new [Transport] for authenticating as an app/installation.
 //
 // How [Transport] authenticates depends on installation options specified.
@@ -115,8 +86,8 @@ const (
 //     example would be to close all stale issues for all repositories in an organization.
 //     This task does not require access to code, thus "issues:write" permission should
 //     be sufficient.
-//   - Use [WithOrganization]if your app has only access to organization permissions
-//     and none of the repositories in that organization. Typical example would be an
+//   - Use [WithOwner] if your app has only access to organization/user permissions
+//     and none of the repositories of the owner. Typical example would be an
 //     app which manages self hosted runners in an organization or manages organization
 //     level projects.
 //   - Use [WithRepositories] if your app intends to access only a set of repositories.
@@ -140,10 +111,10 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrOptions, err)
+		return nil, fmt.Errorf("githubapp: invalid options: %w", err)
 	}
 
-	// Apply all non-nil options.
+	// Apply all options.
 	t := &Transport{
 		appID: appid,
 	}
@@ -160,17 +131,17 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrOptions, err)
+		return nil, fmt.Errorf("githubapp: invalid options: %w", err)
 	}
 
-	// If there is not existing round tripper, use default.
+	// If there is no existing round tripper, use DefaultTransport.
 	if t.next == nil {
 		t.next = http.DefaultTransport
 	}
 
 	// If endpoint is not configured, use default endpoint.
 	if t.endpoint == "" {
-		t.endpoint = DefaultEndpoint
+		t.endpoint = defaultEndpoint
 	}
 
 	// If context is nil, assign a default context.
@@ -178,19 +149,23 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 		ctx = context.Background()
 	}
 
-	// Select JWT signer based on public key of signer.
+	// Select JWT signer based on public key of the signer.
 	switch v := signer.Public().(type) {
 	case *rsa.PublicKey:
 		if v.N.BitLen() < 2048 {
 			return nil,
-				fmt.Errorf("%w: rsa keys size(%d) < 2048 bits", ErrOptions, v.N.BitLen())
+				fmt.Errorf("githubapp: rsa keys size(%d) < 2048 bits", v.N.BitLen())
 		}
 		t.minter = &jwtRS256{internal: signer}
+	case *ecdsa.PublicKey:
+		return nil, fmt.Errorf("githubapp: ECDSA keys are not supported")
+	case *ed25519.PublicKey, ed25519.PublicKey:
+		return nil, fmt.Errorf("githubapp: ED-25519 keys are not supported")
 	default:
-		return nil, fmt.Errorf("%w: unsupported key type: %T", ErrOptions, v)
+		return nil, fmt.Errorf("githubapp: unknown key type: %T", v)
 	}
 
-	// shared client for init operations.
+	// Shared client for init operations.
 	client := &http.Client{
 		Transport: t,
 	}
@@ -198,14 +173,14 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 	// Verify app id and signer are both valid.
 	err = t.checkApp(ctx, client)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrAppInstallation, err)
+		return nil, fmt.Errorf("githubapp: failed to verify app: %w", err)
 	}
 
 	// t.owner is only populated if WithOrganization or WithRepositories
 	// is provided as an option. t.install is only populated if installation
 	// id is specified.
 	if t.owner != "" || t.installID != 0 {
-		// Fetch installation.
+		// Check installation.
 		err = t.checkInstallation(ctx, client)
 		if err != nil {
 			return nil, fmt.Errorf("githubapp: failed to verify installation: %w", err)
@@ -217,20 +192,10 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 			strconv.FormatUint(t.installID, 10), "access_tokens")
 		t.tokenURL = u.String()
 
-		// Fetch bot user id if installation is configured.
-		if t.installID != 0 {
-			err = t.fetchBotUserID(ctx, client)
-			if err != nil {
-				return nil, fmt.Errorf("githubapp: failed to fetch bot user metadata: %w", err)
-			}
-		}
-
-		// Mint initial token. This also validates by proxy all repositories
-		// configured are accessible to the installation.
-		// This also validates by proxy JWT signer is accessible and valid.
-		_, err = t.InstallationToken(ctx)
+		// Fetch bot user metadata.
+		err = t.fetchBotUserID(ctx, client)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("githubapp: failed to fetch bot user metadata: %w", err)
 		}
 	}
 
@@ -275,9 +240,12 @@ func (t *Transport) checkApp(ctx context.Context, client *http.Client) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to verify key for app id %d - %s",
-			t.appID, resp.Status)
+	switch resp.StatusCode {
+	case http.StatusOK:
+	case http.StatusForbidden, http.StatusUnauthorized:
+		return fmt.Errorf("invalid app id or credentials: %s", resp.Status)
+	default:
+		return fmt.Errorf("failed to verify key for app id %d - %s", t.appID, resp.Status)
 	}
 
 	// Populate app's slug and app's permissions.
@@ -315,12 +283,12 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 	r, _ := http.NewRequestWithContext(ctxWithJWTKey(ctx), http.MethodGet, u.String(), nil)
 	resp, err := client.Do(r)
 	if err != nil {
-		return fmt.Errorf("error fetching install id: %w", err)
+		return fmt.Errorf("error fetching installation for %s: %w", t.owner, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid HTTP status: %s", resp.Status)
+		return fmt.Errorf("error fetching installation id: %s", resp.Status)
 	}
 
 	getInstallationResp := api.Installation{}
@@ -388,7 +356,7 @@ func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) err
 	}
 
 	if user.ID == nil || user.Login == nil {
-		return fmt.Errorf("missing user id or login in response")
+		return fmt.Errorf("missing user id or login in API response")
 	}
 
 	t.botUsername = *user.Login
@@ -438,11 +406,11 @@ func (t *Transport) checkInstallationPermissions(permissions map[string]string) 
 				missing = append(missing, fmt.Sprintf("%s:%s", scopeName, scopeLevel))
 			}
 		default:
-			return fmt.Errorf("%w: unknown scope level - %s", ErrScopedPermissions, scopeLevel)
+			return fmt.Errorf("unknown %s level - %s", scopeName, scopeLevel)
 		}
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("%w: %v", ErrScopedPermissions, missing)
+		return fmt.Errorf("missing requested permissions: %v", missing)
 	}
 	return nil
 }
@@ -476,14 +444,14 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 	})
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("%w: failed to marshal token request: %w",
-				ErrInstallationToken, err)
+			fmt.Errorf("githubapp: failed to marshal token request data: %w", err)
 	}
 
-	r, err := http.NewRequestWithContext(ctxWithJWTKey(ctx), http.MethodPost, t.tokenURL, bytes.NewBuffer(buf))
+	r, err := http.NewRequestWithContext(
+		ctxWithJWTKey(ctx), http.MethodPost, t.tokenURL, bytes.NewBuffer(buf))
 	if err != nil {
-		return InstallationToken{}, fmt.Errorf("%w: failed to build token request: %w",
-			ErrInstallationToken, err)
+		return InstallationToken{},
+			fmt.Errorf("githubapp: failed to build token request: %w", err)
 	}
 
 	client := http.Client{
@@ -493,24 +461,21 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 	resp, err := client.Do(r)
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("%w: failed to get installation token: %w",
-				ErrInstallationToken, err)
+			fmt.Errorf("githubapp: failed to get installation token: %w", err)
 	}
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("%w: failed to read installation token response: %w",
-				ErrInstallationToken, err)
+			fmt.Errorf("githubapp: failed to read installation token response: %w", err)
 	}
 
 	tokenResp := api.InstallationTokenResponse{}
 	err = json.Unmarshal(data, &tokenResp)
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("%w: failed to unmarshal installation token response: %w",
-				ErrInstallationToken, err)
+			fmt.Errorf("githubapp: failed to unmarshal installation token response: %w", err)
 	}
 
 	// InstallationToken

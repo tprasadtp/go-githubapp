@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-// Package githubapp is client middleware to authenticate to github as github app.
+// Package githubapp is client middleware to authenticate to github as an app.
 package githubapp

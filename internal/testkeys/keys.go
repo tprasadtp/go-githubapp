@@ -29,7 +29,7 @@ var (
 	ecdsaP256Private *ecdsa.PrivateKey
 )
 
-// Generate ephemeral RSA-1024 key which is unique per execution of the binary/test.
+// Ephemeral RSA-1024 key which is unique per execution of the binary.
 func RSA1024() *rsa.PrivateKey {
 	rsa1024Once.Do(func() {
 		var err error
@@ -42,7 +42,7 @@ func RSA1024() *rsa.PrivateKey {
 	return rsa1024Private
 }
 
-// Generate ephemeral RSA-1024 key which is unique per execution of the binary/test.
+// Ephemeral RSA-1024 key which is unique per execution of the binary.
 func RSA2048() *rsa.PrivateKey {
 	rsa2048Once.Do(func() {
 		var err error
@@ -54,7 +54,7 @@ func RSA2048() *rsa.PrivateKey {
 	return rsa2048Private
 }
 
-// Generate ephemeral ECDSA-P256 key which is unique per execution of the binary/test.
+// Ephemeral ECDSA-P256 key which is unique per execution of the binary.
 func ECP256() *ecdsa.PrivateKey {
 	ecdsaP256Once.Do(func() {
 		var err error

@@ -8,11 +8,11 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -62,7 +62,7 @@ func (s *ctxSigner) Public() crypto.PublicKey {
 func TestJWTSignerRS256(t *testing.T) {
 	type testCase struct {
 		name   string
-		err    error
+		ok     bool
 		appid  uint64
 		ctx    context.Context
 		signer crypto.Signer
@@ -70,67 +70,28 @@ func TestJWTSignerRS256(t *testing.T) {
 
 	tt := []testCase{
 		{
-			name:   "rsa-key",
-			signer: testkeys.RSA2048(),
-			appid:  99,
-		},
-		{
 			name:  "no-key",
 			appid: 99,
-			err:   ErrOptions,
 		},
 		{
 			name:   "ecdsa-key",
 			signer: testkeys.ECP256(),
 			appid:  99,
-			err:    ErrOptions,
 		},
 		{
 			name:   "rsa-key-1024",
 			signer: testkeys.RSA1024(),
 			appid:  99,
-			err:    ErrOptions,
-		},
-		{
-			name:   "ctx-signer-rsa-key",
-			signer: &ctxSigner{signer: testkeys.RSA2048()},
-			appid:  99,
 		},
 		{
 			name:   "invalid-app-id",
 			signer: &ctxSigner{signer: testkeys.RSA2048()},
-			err:    ErrOptions,
 		},
-		// jwt minter respects context cancellation on its own.
-		{
-			name: "ctx-cancelled",
-			ctx: func() context.Context {
-				ctx, cancel := context.WithCancel(context.Background())
-				cancel()
-				return ctx
-			}(),
-			signer: testkeys.RSA2048(),
-			appid:  99,
-			err:    ErrMintJWT,
-		},
-		// errSigner always returns os.ErrNotExist.
 		{
 			name:   "signer-error",
 			ctx:    context.Background(),
 			signer: &errSigner{signer: testkeys.RSA2048()},
 			appid:  99,
-			err:    ErrMintJWT,
-		},
-		{
-			name: "signer-ctx-cancelled",
-			ctx: func() context.Context {
-				ctx, cancel := context.WithCancel(context.Background())
-				cancel()
-				return ctx
-			}(),
-			signer: testkeys.RSA2048(),
-			appid:  99,
-			err:    ErrMintJWT,
 		},
 		{
 			name: "signer-ctx-cancelled-with-cause",
@@ -139,9 +100,8 @@ func TestJWTSignerRS256(t *testing.T) {
 				cancel(os.ErrPermission)
 				return ctx
 			}(),
-			signer: testkeys.RSA2048(),
+			signer: &ctxSigner{signer: testkeys.RSA2048()},
 			appid:  99,
-			err:    ErrMintJWT,
 		},
 		{
 			name: "ctx-signer-ctx-cancelled",
@@ -152,7 +112,6 @@ func TestJWTSignerRS256(t *testing.T) {
 			}(),
 			signer: &ctxSigner{signer: testkeys.RSA2048()},
 			appid:  99,
-			err:    ErrMintJWT,
 		},
 		{
 			name: "context-signer-ctx-cancelled-with-cause",
@@ -163,22 +122,27 @@ func TestJWTSignerRS256(t *testing.T) {
 			}(),
 			signer: &ctxSigner{signer: testkeys.RSA2048()},
 			appid:  99,
-			err:    ErrMintJWT,
+		},
+		{
+			name:   "rsa-key",
+			signer: testkeys.RSA2048(),
+			appid:  99,
+			ok:     true,
+		},
+		{
+			name:   "ctx-signer-rsa-key",
+			signer: &ctxSigner{signer: testkeys.RSA2048()},
+			appid:  99,
+			ok:     true,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.ctx == nil {
-				tc.ctx = context.Background()
-			}
 			token, err := NewJWT(tc.ctx, tc.appid, tc.signer)
-			if !errors.Is(err, tc.err) {
-				t.Errorf("expected error=%s, got=%s", tc.err, err)
-			}
 
-			if tc.err == nil {
+			if tc.ok {
 				if err != nil {
-					t.Errorf("failed to sign: %s", err)
+					t.Errorf("Failed to sign JWT: %s", err)
 				}
 
 				pubKeyFunc := func(t *jwt.Token) (any, error) {
@@ -187,7 +151,15 @@ func TestJWTSignerRS256(t *testing.T) {
 
 				_, err = jwt.Parse(token.Token, pubKeyFunc)
 				if err != nil {
-					t.Errorf("failed to parse jwt: %s", err)
+					t.Errorf("Failed to parse jwt: %s", err)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("Expected error, got nil")
+				}
+
+				if !reflect.DeepEqual(token, JWT{}) {
+					t.Errorf("Must return zero value %T upon errors", token)
 				}
 			}
 		})

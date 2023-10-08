@@ -13,9 +13,8 @@ import (
 	"strings"
 )
 
-// DefaultEndpoint is default GitHub REST API endpoint for app
-// authentication.
-const DefaultEndpoint = "https://api.github.com/"
+// defaultEndpoint is default GitHub REST API endpoint.
+const defaultEndpoint = "https://api.github.com/"
 
 // Options takes a variadic slice of [Options] and returns
 // a single [Options] which includes all the given options.
