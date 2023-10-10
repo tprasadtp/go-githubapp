@@ -212,6 +212,12 @@ func WithInstallationID(id uint64) Option {
 			if id == 0 {
 				return fmt.Errorf("installation id cannot be zero")
 			}
+
+			// If installation id is already set, ensure they do not conflict.
+			if t.installID != 0 && t.installID != id {
+				return fmt.Errorf("installation id is already configured(%d): %d", t.installID, id)
+			}
+
 			t.installID = id
 			return nil
 		},

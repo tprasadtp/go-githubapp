@@ -19,50 +19,62 @@ func transportCmp(t *testing.T, a, b *Transport) bool {
 	t.Helper()
 
 	if a == nil && b == nil {
+		t.Logf("both transport are nil")
 		return true
 	}
 
 	if a == nil && b != nil {
+		t.Logf("one transport is nil, other is not")
 		return false
 	}
 
 	if b == nil && a != nil {
+		t.Logf("one transport is nil, other is not")
 		return false
 	}
 
 	if a.appID != b.appID {
+		t.Logf("a.appID=%d, b.appID=%d", a.appID, b.appID)
 		return false
 	}
 
 	if a.appSlug != b.appSlug {
+		t.Logf("a.appSlug=%s, b.appSlug=%s", a.appSlug, b.appSlug)
 		return false
 	}
 
 	if a.installID != b.installID {
-		return false
-	}
-
-	if a.owner != b.owner {
-		return false
-	}
-
-	if !slices.Equal(a.repos, b.repos) {
-		return false
-	}
-
-	if !reflect.DeepEqual(a.next, b.next) {
+		t.Logf("a.installID=%d, b.installID=%d", a.installID, b.installID)
 		return false
 	}
 
 	if a.endpoint != b.endpoint {
+		t.Logf("a.endpoint=%s, b.endpoint=%s", a.endpoint, b.endpoint)
 		return false
 	}
 
 	if a.tokenURL != b.tokenURL {
+		t.Logf("a.tokenURL=%s, b.tokenURL=%s", a.tokenURL, b.tokenURL)
+		return false
+	}
+
+	if !reflect.DeepEqual(a.next, b.next) {
+		t.Logf("a.next=%#v, b.next=%#v", a.next, b.next)
+		return false
+	}
+
+	if a.owner != b.owner {
+		t.Logf("a.owner=%s, b.owner=%s", a.owner, b.owner)
+		return false
+	}
+
+	if !slices.Equal(a.repos, b.repos) {
+		t.Logf("a.next=%v, b.repos=%v", a.repos, b.repos)
 		return false
 	}
 
 	if !maps.Equal(a.scopes, b.scopes) {
+		t.Logf("a.scopes=%v, b.scopes=%v", a.scopes, b.scopes)
 		return false
 	}
 
