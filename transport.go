@@ -53,20 +53,20 @@ func ctxHasKeyJWT(ctx context.Context) bool {
 // token or JWT token for all requests. If it already exists it is ignored.
 // Token renewal requests will always override 'Accept' and "X-GitHub-Api-Version" headers.
 type Transport struct {
-	appID          uint64            // app ID
-	appSlug        string            // app slug/name
-	installID      uint64            // installation id
-	owner          string            // owner of repositories
-	repos          []string          // repository names
-	next           http.RoundTripper // next round tripper
-	endpoint       string            // API endpoint
-	minter         jwtMinter         // jwt minter
-	bearer         atomic.Value      // bearer token
-	token          atomic.Value      // installation token
-	tokenURL       string            // token url fetch installation token from
-	botUsername    string            // bot username
-	botCommitEmail string            // bot commit email
-	scopes         map[string]string // scoped permissions
+	appID       uint64            // app ID
+	appSlug     string            // app slug/name
+	installID   uint64            // installation id
+	owner       string            // owner of repositories
+	repos       []string          // repository names
+	next        http.RoundTripper // next round tripper
+	baseURL     *url.URL          // REST API v3 base URL
+	minter      jwtMinter         // jwt minter
+	bearer      atomic.Value      // bearer token
+	token       atomic.Value      // installation token
+	tokenURL    string            // token url to create installation token
+	botUsername string            // bot user.name
+	botEmail    string            // bot user.email
+	scopes      map[string]string // scoped permissions
 }
 
 // NewTransport creates a new [Transport] for authenticating as an app/installation.
@@ -136,8 +136,8 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 	}
 
 	// If endpoint is not configured, use default endpoint.
-	if t.endpoint == "" {
-		t.endpoint = defaultEndpoint
+	if t.baseURL == nil {
+		t.baseURL, _ = url.Parse(defaultEndpoint)
 	}
 
 	// If context is nil, assign a default context.
@@ -182,12 +182,6 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 			return nil, fmt.Errorf("githubapp: failed to verify installation: %w", err)
 		}
 
-		// Pre-build TokenURL.
-		u, _ := url.Parse(t.endpoint)
-		u.Path, _ = url.JoinPath(u.Path, "app", "installations",
-			strconv.FormatUint(t.installID, 10), "access_tokens")
-		t.tokenURL = u.String()
-
 		// Fetch bot user metadata.
 		err = t.fetchBotUserID(ctx, client)
 		if err != nil {
@@ -208,6 +202,17 @@ func (t *Transport) AppName() string {
 	return t.appSlug
 }
 
+// BotUsername returns the github app's username.
+// This is same as AppName, but with [bot] suffix.
+func (t *Transport) BotUsername() string {
+	return t.botUsername
+}
+
+// BotCommitterEmail returns the github app's no-reply email to use for git metadata.
+func (t *Transport) BotCommitterEmail() string {
+	return t.botEmail
+}
+
 // InstallationID returns the github installation id. If not repositories
 // or organizations are configured, This will returns 0.
 func (t *Transport) InstallationID() uint64 {
@@ -223,8 +228,8 @@ func (t *Transport) ScopedPermissions() map[string]string {
 
 // checkApp verifies app id and signer both are valid. This also populates app's name.
 func (t *Transport) checkApp(ctx context.Context, client *http.Client) error {
-	u, _ := url.Parse(t.endpoint)
-	u = u.JoinPath(u.Path, "app")
+	u := t.baseURL.JoinPath("app")
+
 	// Set context to use JWT.
 	r, _ := http.NewRequestWithContext(ctxWithJWTKey(ctx), http.MethodGet, u.String(), nil)
 
@@ -244,7 +249,7 @@ func (t *Transport) checkApp(ctx context.Context, client *http.Client) error {
 		return fmt.Errorf("failed to verify key for app id %d - %s", t.appID, resp.Status)
 	}
 
-	// Populate app's slug and app's permissions.
+	// Populate app's slug.
 	appResp := api.App{}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -266,13 +271,11 @@ func (t *Transport) checkApp(ctx context.Context, client *http.Client) error {
 //
 // https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-a-repository-installation-for-the-authenticated-app--parameters
 func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) error {
-	// If Installation ID is specified, use it to fetch installation metadata.
-	// Otherwise fallback to using users/{owner}/installation endpoint.
-	u, _ := url.Parse(t.endpoint)
+	var u *url.URL
 	if t.installID != 0 {
-		u = u.JoinPath(u.Path, "app", "installations", strconv.FormatUint(t.installID, 10))
+		u = t.baseURL.JoinPath("app", "installations", strconv.FormatUint(t.installID, 10))
 	} else {
-		u = u.JoinPath(u.Path, "users", t.owner, "installation")
+		u = t.baseURL.JoinPath("users", t.owner, "installation")
 	}
 
 	// Set context to use JWT.
@@ -305,14 +308,6 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 		}
 	}
 
-	// Save installation ID.
-	if t.installID == 0 {
-		t.installID = uint64(*getInstallationResp.ID)
-	} else if t.installID != 0 && t.installID != uint64(*getInstallationResp.ID) {
-		return fmt.Errorf("configured installation id %d, does not match actual value %d",
-			t.installID, *getInstallationResp.ID)
-	}
-
 	// Check is scoped permissions are supported by the app's installation.
 	// permissions on app itself are not checked as effective permissions depend
 	// on those granted by installation and scopes defined.
@@ -321,15 +316,35 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 		return err
 	}
 
+	// Save installation ID.
+	if t.installID == 0 {
+		t.installID = uint64(*getInstallationResp.ID)
+	} else if t.installID != 0 && t.installID != uint64(*getInstallationResp.ID) {
+		return fmt.Errorf("configured installation id %d, does not match actual value %d",
+			t.installID, *getInstallationResp.ID)
+	}
+
+	// Save access token url for the installation.
+	if getInstallationResp.AccessTokensURL != nil {
+		t.tokenURL = *getInstallationResp.AccessTokensURL
+	}
+
+	// Save owner if not specified. This is the case where only installation id is given.
+	if t.owner == "" {
+		t.owner = *getInstallationResp.Account.Login
+	}
+
 	return nil
 }
 
 // fetchBotUserID fetches bot's github user id.
 func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) error {
-	u, _ := url.Parse(t.endpoint)
-	u = u.JoinPath(u.Path, "users", fmt.Sprintf("%s[bot]", t.appSlug))
+	u := t.baseURL.JoinPath("users", fmt.Sprintf("%s[bot]", t.appSlug))
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return fmt.Errorf("failed to build request: %w", err)
+	}
 
-	r, _ := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	resp, err := client.Do(r)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -356,7 +371,7 @@ func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) err
 	}
 
 	t.botUsername = *user.Login
-	t.botCommitEmail = fmt.Sprintf("%d+%s@users.noreply.github.com", *user.ID, *user.Login)
+	t.botEmail = fmt.Sprintf("%d+%s@users.noreply.github.com", *user.ID, *user.Login)
 	return nil
 }
 
@@ -434,6 +449,10 @@ func (t *Transport) JWT(ctx context.Context) (JWT, error) {
 // InstallationToken returns a new installation access token. This, always returns
 // a new token, thus callers can safely revoke the token whenever required.
 func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, error) {
+	if t.installID == 0 {
+		return InstallationToken{}, fmt.Errorf("githubapp: installation id is not configured")
+	}
+
 	buf, err := json.Marshal(api.InstallationTokenRequest{
 		Repositories: t.repos,
 		Permissions:  t.scopes,
@@ -461,6 +480,24 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 	}
 	defer resp.Body.Close()
 
+	// Check response code.
+	// https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app--status-codes
+	switch resp.StatusCode {
+	case http.StatusCreated:
+	case http.StatusForbidden:
+		return InstallationToken{},
+			fmt.Errorf("githubapp: private key is invalid: %s", resp.Status)
+	case http.StatusNotFound:
+		return InstallationToken{},
+			fmt.Errorf("githubapp: installation not found: %s", resp.Status)
+	case http.StatusUnprocessableEntity:
+		return InstallationToken{},
+			fmt.Errorf("githubapp: validation error/too many token requests: %s", resp.Status)
+	default:
+		return InstallationToken{},
+			fmt.Errorf("githubapp: API returned error: %s", resp.Status)
+	}
+
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return InstallationToken{},
@@ -476,7 +513,7 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 
 	// InstallationToken
 	token := InstallationToken{
-		Server:         t.endpoint,
+		Server:         t.baseURL.String(),
 		AppID:          t.appID,
 		AppName:        t.appSlug,
 		InstallationID: t.installID,
@@ -494,11 +531,12 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 		}
 	}
 
-	token.BotCommitterEmail = t.botCommitEmail
+	token.BotCommitterEmail = t.botEmail
 	token.BotUsername = t.botUsername
 	if tokenResp.Permissions != nil {
 		token.Permissions = tokenResp.Permissions
 	}
+
 	return token, nil
 }
 

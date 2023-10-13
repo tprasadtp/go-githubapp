@@ -29,8 +29,13 @@ type User struct {
 }
 
 type InstallationTokenRequest struct {
-	Repositories []string          `json:"repositories,omitempty"`
-	Permissions  map[string]string `json:"permissions,omitempty"`
+	// The names of the repositories that the installation token can access.
+	// Providing repository names restricts the access of an installation token to specific repositories.
+	Repositories []string `json:"repositories,omitempty"`
+
+	// The permissions granted to the access token.
+	// The permissions object includes the permission names and their access type.
+	Permissions map[string]string `json:"permissions,omitempty"`
 }
 
 type InstallationTokenResponse struct {
