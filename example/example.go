@@ -14,8 +14,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
-	"time"
+	"syscall"
 
 	"github.com/tprasadtp/go-githubapp"
 )
@@ -24,78 +25,90 @@ var privFile string
 var appID uint64
 var installationID uint64
 var repos string
-var gitCredMode bool
+var owner string
+var modeJwt bool
 
-//nolint:forbidigo // example script.
+func Usage() {
+	fmt.Fprintf(flag.CommandLine.Output(), "Tool to obtain installation access token for a Github App\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Usage: go run github.com/tprasadtp/go-githubapp/example@latest\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Flags:\n")
+	flag.PrintDefaults()
+}
+
+//nolint:forbidigo,govet // ignore for example script.
 func main() {
-	flag.StringVar(&privFile, "key", "", "private key")
-	flag.Uint64Var(&appID, "app-id", 0, "app id")
-	flag.Uint64Var(&installationID, "install-id", 0, "installation id")
-	flag.StringVar(&repos, "repos", "", "repos")
-	flag.BoolVar(&gitCredMode, "git-credentials", false, "git credentials mode")
+	flag.StringVar(&privFile, "private-key", "", "Path to private key file")
+	flag.Uint64Var(&appID, "app-id", 0, "GitHub app ID")
+	flag.Uint64Var(&installationID, "install-id", 0, "App installation ID")
+	flag.StringVar(&repos, "repos", "", "Comma separated list of repositories")
+	flag.StringVar(&owner, "owner", "", "Installation owner (username)")
+	flag.BoolVar(&modeJwt, "jwt", false, "Generate only JWT")
+
+	flag.Usage = Usage
 	flag.Parse()
 
 	if appID == 0 {
-		log.Fatal("app id not specified")
+		log.Fatal("GitHub app ID not specified")
 	}
 
-	if appID == 0 {
-		log.Fatal("private key not specified")
+	if privFile == "" {
+		log.Fatal("Private key file not specified")
 	}
 
 	file, err := os.Open(privFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to open private key: %s", err)
 	}
 
 	slurp, err := io.ReadAll(file)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to read private key: %s", err)
 	}
 
 	block, _ := pem.Decode(slurp)
 	if block == nil {
-		log.Fatal(err)
+		log.Fatalf("Invalid private key: %s", err)
 	}
 
 	// Try to parse key as private key.
 	signer, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Invalid private key: %s", err)
 	}
 
-	var opts []githubapp.Option
-	if installationID != 0 {
-		opts = append(opts, githubapp.WithInstallationID(installationID))
-	}
-
-	if repos != "" {
-		repoList := strings.Split(repos, ",")
-		opts = append(opts, githubapp.WithRepositories(repoList...))
-	}
-
-	ctx := context.Background()
-	transport, err := githubapp.NewTransport(ctx, appID, signer,
-		githubapp.Options(opts...),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	token, err := transport.InstallationToken(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if gitCredMode {
-		fmt.Printf("protocol=https\n")
-		fmt.Printf("username=x-access-token\n")
-		fmt.Printf("password=%s\n", token.Token)
-		fmt.Printf("password_expiry_utc=%d\n", token.Exp.Truncate(time.Second).Unix())
-		fmt.Println()
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	if modeJwt {
+		token, err := githubapp.NewJWT(ctx, appID, signer)
+		if err != nil {
+			log.Fatalf("Failed to mint JWT: %s", err)
+		}
+		fmt.Printf("JWT           : %s\n", token.Token)
 	} else {
-		fmt.Printf("Token: %s\n", token.Token)
-		fmt.Printf("user.name: %s\n", token.BotUsername)
-		fmt.Printf("user.email: %s\n", token.BotCommitterEmail)
+		var opts []githubapp.Option
+		if installationID != 0 {
+			opts = append(opts, githubapp.WithInstallationID(installationID))
+		}
+
+		if repos != "" {
+			list := strings.Split(repos, ",")
+			opts = append(opts, githubapp.WithRepositories(list...))
+		}
+
+		if owner != "" {
+			opts = append(opts, githubapp.WithOwner(owner))
+		}
+
+		token, err := githubapp.NewInstallationToken(ctx, appID, signer, opts...)
+		if err != nil {
+			log.Fatalf("error generating token: %s", err)
+		}
+
+		fmt.Printf("Token        : %s\n", token.Token)
+		fmt.Printf("Owner        : %v\n", token.Owner)
+		fmt.Printf("Installation : %d\n", token.InstallationID)
+		fmt.Printf("Repositories : %v\n", token.Repositories)
+		fmt.Printf("Permissions  : %v\n", token.Permissions)
+		fmt.Printf("user.name    : %s\n", token.BotUsername)
+		fmt.Printf("user.email   : %s\n", token.BotCommitterEmail)
 	}
 }

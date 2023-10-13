@@ -97,7 +97,7 @@ func WithEndpoint(endpoint string) Option {
 				return fmt.Errorf("endpoint cannot have fragments in endpoint URL: %s", endpoint)
 			}
 
-			t.endpoint = endpoint
+			t.baseURL = u
 			return nil
 		},
 	}
@@ -158,7 +158,7 @@ func WithRepositories(repos ...string) Option {
 				if !repoNameRegExp.MatchString(item) {
 					invalid = append(invalid, item)
 				} else {
-					t.repos = append(t.repos, repo)
+					t.repos = append(t.repos, item)
 				}
 			}
 
@@ -167,9 +167,11 @@ func WithRepositories(repos ...string) Option {
 			}
 			t.repos = append(t.repos, names...)
 
-			// Remove duplicates
+			// Sort before removing duplicates.
 			slices.Sort(t.repos)
-			slices.Compact(t.repos)
+
+			// Remove duplicates
+			t.repos = slices.Clip(slices.Compact(t.repos))
 
 			// Set owner if not set.
 			if t.owner == "" && refOwner != "" {

@@ -48,8 +48,8 @@ func transportCmp(t *testing.T, a, b *Transport) bool {
 		return false
 	}
 
-	if a.endpoint != b.endpoint {
-		t.Logf("a.endpoint=%s, b.endpoint=%s", a.endpoint, b.endpoint)
+	if !reflect.DeepEqual(a.baseURL, b.baseURL) {
+		t.Logf("a.baseURL=%s, b.baseURL=%s", a.baseURL, b.baseURL)
 		return false
 	}
 
@@ -203,7 +203,7 @@ func TestNewTransport(t *testing.T) {
 		{
 			name:    "endpoint-unreachable",
 			signer:  testkeys.RSA2048(),
-			options: []Option{WithEndpoint("http://308489a4-2f67-4d6a-9d8a-11d21f44bfa0-endpoint.go-githubapp.test")},
+			options: []Option{WithEndpoint("http://308489a4-2f67-4d6a-9d8a-11d21f44bfa0")},
 			appID:   99,
 		},
 	}
