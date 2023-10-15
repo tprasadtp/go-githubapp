@@ -306,14 +306,14 @@ func TestWithEndpoint(t *testing.T) {
 
 	t.Run("url-valid-default", func(t *testing.T) {
 		transport := Transport{}
-		opts := Options(WithEndpoint(defaultEndpoint))
+		opts := Options(WithEndpoint(internal.DefaultEndpoint))
 		err := opts.apply(&transport)
 		if err != nil {
 			t.Errorf("expected no error, got %s", err)
 		}
-		if transport.baseURL.String() != defaultEndpoint {
+		if transport.baseURL.String() != internal.DefaultEndpoint {
 			t.Errorf("transport baseURL should be %s, got %s",
-				defaultEndpoint, transport.baseURL)
+				internal.DefaultEndpoint, transport.baseURL)
 		}
 	})
 }

@@ -29,20 +29,21 @@ var owner string
 var modeJwt bool
 
 func Usage() {
-	fmt.Fprintf(flag.CommandLine.Output(), "Tool to obtain installation access token for a Github App\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Tool to obtain installation access token or JWT for a Github App\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "This is a simple example CLI and is not covered by semver compatibility guarantees.\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Use https://github.com/tprasadtp/gh-app-token if you need a CLI.\n\n")
 	fmt.Fprintf(flag.CommandLine.Output(), "Usage: go run github.com/tprasadtp/go-githubapp/example@latest\n\n")
 	fmt.Fprintf(flag.CommandLine.Output(), "Flags:\n")
 	flag.PrintDefaults()
 }
 
-//nolint:forbidigo,govet // ignore for example script.
 func main() {
-	flag.StringVar(&privFile, "private-key", "", "Path to private key file")
-	flag.Uint64Var(&appID, "app-id", 0, "GitHub app ID")
-	flag.Uint64Var(&installationID, "install-id", 0, "App installation ID")
+	flag.StringVar(&privFile, "private-key", "", "Path to PKCS1 private key file (required)")
+	flag.Uint64Var(&appID, "app-id", 0, "GitHub app ID (required)")
+	flag.Uint64Var(&installationID, "install-id", 0, "Installation ID")
 	flag.StringVar(&repos, "repos", "", "Comma separated list of repositories")
-	flag.StringVar(&owner, "owner", "", "Installation owner (username)")
-	flag.BoolVar(&modeJwt, "jwt", false, "Generate only JWT")
+	flag.StringVar(&owner, "owner", "", "Installation owner")
+	flag.BoolVar(&modeJwt, "jwt", false, "Generate JWT")
 
 	flag.Usage = Usage
 	flag.Parse()

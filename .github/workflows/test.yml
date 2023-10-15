@@ -30,4 +30,8 @@ jobs:
         run: go version
 
       - name: Run tests
-        run: go test -cover -covermode=atomic -coverprofile coverage.out  ./...
+        run: go test -v -cover -covermode=atomic -coverprofile coverage.out  ./...
+        env:
+          GO_GITHUBAPP_TEST_OWNER: ${{ vars.GO_GITHUBAPP_TEST_OWNER }}
+          GO_GITHUBAPP_TEST_APP_ID: ${{ vars.GO_GITHUBAPP_TEST_APP_ID }}
+          GO_GITHUBAPP_TEST_APP_PRIVATE_KEY: ${{ secrets.GO_GITHUBAPP_TEST_APP_PRIVATE_KEY }}

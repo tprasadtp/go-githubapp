@@ -210,3 +210,4 @@ internal/testinfra/*.yaml
 .env
 .env.*
 !.env.sample
+.envrc

@@ -134,9 +134,9 @@ linters-settings:
         - github.com/pkg/errors:
             reason: "Use error wrapping available in stdlib"
 
-        # Hashicorp has changed their license to BSL for
-        # most products. Avoid them. Libraries may not be under BSL,
-        # but they directly or indirectly depend on BSL licensed product.
+        # Hashicorp has changed their license to BUSL for
+        # most products. Avoid them. Libraries may not be under BUSL,
+        # but they directly or indirectly depend on BUSL licensed product.
         # --------------------------------------------------------------------
 
         # Hashicorp Terraform
@@ -205,6 +205,9 @@ linters-settings:
 
       - p: ^fmt\.Fprintf\(os.Std(out|err)*$
         msg: "Do not commit print statements."
+
+      - p: time.Sleep
+        msg: "Avoid using time.Sleep in you code."
 
       - p: ^log\.KV\(log\.ErrorKey*$
         msg: "Use log.E(error) instead"
@@ -396,15 +399,18 @@ issues:
   # Default: 3
   max-same-issues: 50
   exclude-rules:
+    - linters:
+        - govet
+      text: "shadow: declaration of \"err\" shadows declaration"
+
     - source: "^//\\s*go:generate\\s"
       linters:
         - lll
+
     - source: "(noinspection|TODO)"
       linters:
         - godot
-    - source: "//noinspection"
-      linters:
-        - gocritic
+
     - path: '(.+)_test\.go'
       linters:
         - dupl
@@ -415,7 +421,8 @@ issues:
         - funlen
         - wrapcheck
         - containedctx
-    - path: '(.+)testdata\.go'
+
+    - path: 'testdata\.go'
       linters:
         - funlen
         - wrapcheck
@@ -424,6 +431,11 @@ issues:
         - gocognit
         - gocyclo
 
-    - path: '(.+)generate\.go'
+    - path: 'generate\.go'
       linters:
         - wrapcheck
+
+    - path: 'example\.go'
+      linters:
+        - wrapcheck
+        - forbidigo
