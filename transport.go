@@ -21,6 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/tprasadtp/go-githubapp/internal"
 	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
@@ -137,7 +138,7 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 
 	// If endpoint is not configured, use default endpoint.
 	if t.baseURL == nil {
-		t.baseURL, _ = url.Parse(defaultEndpoint)
+		t.baseURL, _ = url.Parse(internal.DefaultEndpoint)
 	}
 
 	// If context is nil, assign a default context.
@@ -286,16 +287,21 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error fetching installation id: %s", resp.Status)
-	}
-
-	getInstallationResp := api.Installation{}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		errResp := &api.ErrorResponse{}
+		err = json.Unmarshal(data, errResp)
+		if err == nil && errResp.Message != "" {
+			return fmt.Errorf("%s(%s)", errResp.Message, resp.Status)
+		}
+		return fmt.Errorf("%s", resp.Status)
+	}
+
+	getInstallationResp := api.Installation{}
 	err = json.Unmarshal(data, &getInstallationResp)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response body: %w", err)
@@ -334,6 +340,13 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 		t.owner = *getInstallationResp.Account.Login
 	}
 
+	// Try to create a new installation token for scopes and repository specified.
+	// This is immediately used to fetch bot metadata.
+	_, err = t.installationAuthzHeaderValue(ctx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -347,17 +360,23 @@ func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) err
 
 	resp, err := client.Do(r)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return fmt.Errorf("request failed - %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid HTTP status: %s", resp.Status)
-	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// If API responds with non 200 status, try to read error message in the response.
+	if resp.StatusCode != http.StatusOK {
+		errResp := &api.ErrorResponse{}
+		err = json.Unmarshal(data, errResp)
+		if err == nil && errResp.Message != "" {
+			return fmt.Errorf("%s(%s)", errResp.Message, resp.Status)
+		}
+		return fmt.Errorf("%s", resp.Status)
 	}
 
 	user := api.User{}
@@ -459,14 +478,15 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 	})
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("githubapp: failed to marshal token request data: %w", err)
+			fmt.Errorf("githubapp(token): failed to marshal token request: %w", err)
 	}
 
+	// Force using JWT via ctxWithJWTKey.
 	r, err := http.NewRequestWithContext(
 		ctxWithJWTKey(ctx), http.MethodPost, t.tokenURL, bytes.NewBuffer(buf))
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("githubapp: failed to build token request: %w", err)
+			fmt.Errorf("githubapp(token): failed to build token request: %w", err)
 	}
 
 	client := http.Client{
@@ -476,39 +496,36 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 	resp, err := client.Do(r)
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("githubapp: failed to get installation token: %w", err)
+			fmt.Errorf("githubapp(token): failed to get installation token: %w", err)
 	}
 	defer resp.Body.Close()
-
-	// Check response code.
-	// https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app--status-codes
-	switch resp.StatusCode {
-	case http.StatusCreated:
-	case http.StatusForbidden:
-		return InstallationToken{},
-			fmt.Errorf("githubapp: private key is invalid: %s", resp.Status)
-	case http.StatusNotFound:
-		return InstallationToken{},
-			fmt.Errorf("githubapp: installation not found: %s", resp.Status)
-	case http.StatusUnprocessableEntity:
-		return InstallationToken{},
-			fmt.Errorf("githubapp: validation error/too many token requests: %s", resp.Status)
-	default:
-		return InstallationToken{},
-			fmt.Errorf("githubapp: API returned error: %s", resp.Status)
-	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("githubapp: failed to read installation token response: %w", err)
+			fmt.Errorf("githubapp(token): failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		// Try to decode error message if possible.
+		// GitHub API error response JSON is inconsistent.
+		errResp := &api.ErrorResponse{}
+		err = json.Unmarshal(data, errResp)
+		if err == nil && errResp.Message != "" {
+			// Error string MUST include response code or response status
+			// for integration tests to verify.
+			return InstallationToken{},
+				fmt.Errorf("githubapp(token): %s(%s)", errResp.Message, resp.Status)
+		}
+		return InstallationToken{},
+			fmt.Errorf("githubapp(token): failed to get installation token %s", resp.Status)
 	}
 
 	tokenResp := api.InstallationTokenResponse{}
 	err = json.Unmarshal(data, &tokenResp)
 	if err != nil {
 		return InstallationToken{},
-			fmt.Errorf("githubapp: failed to unmarshal installation token response: %w", err)
+			fmt.Errorf("githubapp(token): failed to unmarshal response: %w", err)
 	}
 
 	// InstallationToken

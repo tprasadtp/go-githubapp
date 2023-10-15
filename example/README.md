@@ -11,19 +11,24 @@ An example program to obtain installation access token for an app.
 ## Usage
 
 ```
-Tool to obtain installation access token for a Github App
+Tool to obtain installation access token or JWT for a Github App
+
+This is a simple example CLI and is not covered by semver compatibility guarantees.
+Use https://github.com/tprasadtp/gh-app-token if you need a CLI.
 
 Usage: go run github.com/tprasadtp/go-githubapp/example@latest
 
 Flags:
   -app-id uint
-        GitHub app ID
+        GitHub app ID (required)
   -install-id uint
-        App installation ID
+        Installation ID
+  -jwt
+        Generate JWT
   -owner string
-        Installation owner (username)
+        Installation owner
   -private-key string
-        Path to private key file
+        Path to PKCS1 private key file (required)
   -repos string
         Comma separated list of repositories
 ```

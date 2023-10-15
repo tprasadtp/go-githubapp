@@ -1,6 +1,8 @@
 # Generating test data
 
 For generating test data, use a non production isolated github organization.
+See [../testinfra/README.md](../testinfra/README.md) for creating required
+resources.
 
 ## Generating WebHook test data
 
@@ -21,28 +23,18 @@ For generating test data, use a non production isolated github organization.
     ```console
     gh webhook forward \
         --events="*"  \
-        --repo=gh-integration-tests/go-githubapp-repo-one \
+        --repo=<sandbox-org>/go-githubapp-repo-one \
         --secret fa1286b4-ff70-4cf0-9471-443c796ff13b \
         --url http://localhost:8888/webhook
     ```
 
-- Generate a github app installation access token which has access to a repo
-with issues write permission. Alternatively you can use your own github account for this.
-
-    ```console
-    go run ./example/token.go \
-        -app-id <app-id> \
-        -key <private-key-file-path> \
-        -repos <owner/repo>
-    ```
-
 - Create some repository events like opening an issue or commenting on an issue.
-Use the token generated or default user credentials.
+Optionally use installation access token which has appropriate permissions.
 
     ```console
-    gh issue create --repo {owner/repo} \
+    gh issue create --repo <sandbox-org>/go-githubapp-repo-one \
         --title "Test issue" \
         --body "test issue"
     ```
 
-- Stop test webhook server and webhook forwarder.
+- Stop both test webhook server and webhook forwarder.

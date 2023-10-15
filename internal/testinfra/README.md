@@ -1,4 +1,4 @@
-# Integration Testing infra
+# Integration testing infra
 
 - Create a new github organization.
 - Enroll your newly created organization to allow fine grained access tokens.
@@ -18,6 +18,16 @@ repository permissions.
     ```
     pulumi up
     ```
+
+- Create a new github app under the organization created. See [this](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) for more info.
+- Created app **MUST** have following permissions. Avoid assigning write permissions.
+    - Metadata -> ReadOny
+    - Contents -> ReadOnly
+- `go-githubapp-repo-one`, `go-githubapp-repo-two` and `go-githubapp-repo-no-access`
+**MUST** be private.
+- Install the newly created app and grant it access to **ONLY** `go-githubapp-repo-one` and `go-githubapp-repo-two` repositories. It **MUST NOT** have access to `go-githubapp-repo-no-access`.
+- Make a note of App ID.
+- Create a new app private key and download it.
 
 [administration:write]:https://docs.github.com/en/rest/overview/permissions-required-for-github-apps?apiVersion=2022-11-28#repository-permissions-for-administration
 [contents:write]: https://docs.github.com/en/rest/overview/permissions-required-for-github-apps?apiVersion=2022-11-28#repository-permissions-for-contents

@@ -63,6 +63,11 @@ type Installation struct {
 	SuspendedAt            *Timestamp        `json:"suspended_at,omitempty"`
 }
 
+type ErrorResponse struct {
+	Message          string `json:"message,omitempty"` // error message
+	DocumentationURL string `json:"documentation_url,omitempty"`
+}
+
 // App represents a GitHub App.
 type App struct {
 	ID                 *int64            `json:"id,omitempty"`

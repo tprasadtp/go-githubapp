@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -325,33 +324,5 @@ func TestNewInstallationToken(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// This tests makes live API calls to default github api endpoint.
-// Thus depends on GitHub API availability.
-func TestIntegration(t *testing.T) {
-	appID := os.Getenv("GO_GITHUBAPP_TEST_APP_ID")
-	appKey := os.Getenv("GO_GITHUBAPP_TEST_APP_PRIVATE_KEY")
-	ghOwner := os.Getenv("GO_GITHUBAPP_TEST_OWNER")
-	skip := 0
-
-	if appID == "" {
-		t.Logf("GO_GITHUBAPP_TEST_APP_ID is not defined")
-		skip++
-	}
-
-	if appKey == "" {
-		t.Logf("GO_GITHUBAPP_TEST_APP_PRIVATE_KEY is not defined")
-		skip++
-	}
-
-	if ghOwner == "" {
-		t.Logf("GO_GITHUBAPP_TEST_OWNER is not defined")
-		skip++
-	}
-
-	if skip > 0 {
-		t.SkipNow()
 	}
 }

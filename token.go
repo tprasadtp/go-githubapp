@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/tprasadtp/go-githubapp/internal"
 )
 
 var (
@@ -95,7 +97,7 @@ func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) er
 
 	server := t.Server
 	if t.Server == "" {
-		server = defaultEndpoint
+		server = internal.DefaultEndpoint
 	}
 	u, err := url.Parse(server)
 	if err != nil {

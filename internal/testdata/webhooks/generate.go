@@ -27,10 +27,19 @@ var dir string
 var secret string
 var wg sync.WaitGroup
 
+func Usage() {
+	fmt.Fprintf(flag.CommandLine.Output(), "CLI to dump github webhook requests to directory.\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "This is not covered by semver compatibility guarantees.\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Usage: go run internal/testdata/webhooks/generate.go\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Flags:\n")
+	flag.PrintDefaults()
+}
+
 func main() {
 	flag.UintVar(&port, "port", 8899, "webhook server port")
 	flag.StringVar(&dir, "dir", "", "webhook request log dir")
 	flag.StringVar(&secret, "secret", "", "webhook secret")
+	flag.Usage = Usage
 	flag.Parse()
 
 	if secret == "" {
@@ -66,7 +75,7 @@ func main() {
 		//nolint:gosimple // https://github.com/dominikh/go-tools/issues/503
 		for {
 			select {
-			// on stop, return and stops ticks.
+			// on cancel, stops server and return.
 			case <-ctx.Done():
 				log.Printf("Stopping server - %s", srv.Addr)
 				serr = srv.Shutdown(ctx)
@@ -78,7 +87,7 @@ func main() {
 		}
 	}()
 
-	// Start server
+	// Start server.
 	slog.Info("Starting server", "addr", srv.Addr)
 	err = srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -88,7 +97,7 @@ func main() {
 	}
 
 	wg.Wait()
-	log.Printf("Server stopped %s", srv.Addr)
+	slog.Info("Server stopped", "addr", srv.Addr)
 }
 
 func Mux() *http.ServeMux {
