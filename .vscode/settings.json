@@ -9,4 +9,6 @@
     // Enable go vulnerability checks.
     "go.diagnostic.vulncheck": "Imports",
     "go.testTimeout": "60s",
+    // Load env for secrets required for integration tests.
+    "go.testEnvFile": "${workspaceFolder}/.env",
 }

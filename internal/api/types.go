@@ -10,11 +10,6 @@
 // [github.com/tprasadtp/go-githubapp.Transport].
 package api
 
-import (
-	"strconv"
-	"time"
-)
-
 // Repository represents a GitHub repository.
 type Repository struct {
 	ID    *int64  `json:"id,omitempty"`
@@ -87,38 +82,4 @@ type App struct {
 type ListInstallationRepositoriesResponse struct {
 	TotalCount   int64         `json:"total_count,omitempty"`
 	Repositories []*Repository `json:"repositories,omitempty"`
-}
-
-// Timestamp represents a time that can be un-marshalled from a JSON string
-// formatted as either an RFC3339 or Unix timestamp. This is necessary for some
-// fields since the GitHub API is inconsistent in how it represents times.
-type Timestamp struct {
-	time.Time
-}
-
-func (t Timestamp) String() string {
-	return t.Time.String()
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// Time is expected in RFC3339 or Unix format.
-//
-//nolint:nonamedreturns,nakedret // ignore
-func (t *Timestamp) UnmarshalJSON(data []byte) (err error) {
-	str := string(data)
-	i, err := strconv.ParseInt(str, 10, 64)
-	if err == nil {
-		t.Time = time.Unix(i, 0)
-		if t.Time.Year() > 3000 {
-			t.Time = time.Unix(0, i*1e6)
-		}
-	} else {
-		t.Time, err = time.Parse(`"`+time.RFC3339+`"`, str)
-	}
-	return
-}
-
-// Equal reports whether t and u are equal based on time.Equal.
-func (t Timestamp) Equal(u Timestamp) bool {
-	return t.Time.Equal(u.Time)
 }

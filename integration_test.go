@@ -29,9 +29,19 @@ func TestIntegration(t *testing.T) {
 		t.Skipf("Skip => Integration tests in short mode")
 	}
 
-	appKeyEnv := os.Getenv("GO_GITHUBAPP_TEST_APP_PRIVATE_KEY")
-	appIDEnv := os.Getenv("GO_GITHUBAPP_TEST_APP_ID")
-	ghOwnerEnv := os.Getenv("GO_GITHUBAPP_TEST_OWNER")
+	// Try to read private key from env variable or file defined in env variable.
+	var appKeyEnv string
+	if keyFile := os.Getenv("GO_GITHUBAPP_TEST_APP_PRIVATE_KEY_FILE"); keyFile != "" {
+		t.Logf("Reading private key from - %s", keyFile)
+		buf, err := os.ReadFile(keyFile)
+		if err != nil {
+			t.Fatalf("Failed to open private key (%s): %s", keyFile, err)
+		}
+		appKeyEnv = string(buf)
+	} else {
+		t.Logf("Reading private key from GO_GITHUBAPP_TEST_APP_PRIVATE_KEY")
+		appKeyEnv = os.Getenv("GO_GITHUBAPP_TEST_APP_PRIVATE_KEY")
+	}
 
 	if appKeyEnv == "" {
 		t.Skipf("Skip => GO_GITHUBAPP_TEST_APP_PRIVATE_KEY is not defined")
@@ -48,20 +58,24 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("GO_GITHUBAPP_TEST_APP_PRIVATE_KEY is not PKCS1 encoded: %s", err)
 	}
 
-	// Verify GO_GITHUBAPP_TEST_APP_ID is valid integer.
+	appIDEnv := os.Getenv("GO_GITHUBAPP_TEST_APP_ID")
+	ghOwnerEnv := os.Getenv("GO_GITHUBAPP_TEST_OWNER")
+
+	// Verify GO_GITHUBAPP_TEST_APP_ID is set and is an integer.
 	if appIDEnv == "" {
 		t.Skipf("Skip => GO_GITHUBAPP_TEST_APP_ID is not defined")
 	}
-
 	appID, err := strconv.ParseUint(appIDEnv, 10, 64)
 	if err != nil {
 		t.Fatalf("GO_GITHUBAPP_TEST_APP_ID is invalid: %s", err)
 	}
 
+	// Verify GO_GITHUBAPP_TEST_APP_ID is set.
 	if ghOwnerEnv == "" {
 		t.Skipf("Skip => GO_GITHUBAPP_TEST_OWNER is not defined")
 	}
 
+	// Check if GO_GITHUBAPP_TEST_BASE_URL is set.
 	baseURLEnv := os.Getenv("GO_GITHUBAPP_TEST_BASE_URL")
 	if baseURLEnv == "" {
 		baseURLEnv = internal.DefaultEndpoint
