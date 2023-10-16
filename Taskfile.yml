@@ -46,15 +46,36 @@ tasks:
         - GO_TEST_TIMEOUT
     cmds:
       - cmd: go test -cover -timeout={{.GO_TEST_TIMEOUT}} {{.GO_TEST_PKG}}
+
+  go:test-all-short:
+    desc: "Test all go packages (short mode)"
+    aliases:
+      - "test-all-short"
+    cmds:
+      - cmd: go test -cover -timeout=1m -short ./...
+
   go:test-all:
     desc: "Test all go packages"
     aliases:
       - "test-all"
     cmds:
-      - task: go:test-pkg-internal
-        vars:
-          GO_TEST_PKG: "./..."
-          GO_TEST_TIMEOUT: 1m
+      - cmd: go test -cover -timeout=2m ./...
+
+  go:test-go-githubapp-integration:
+    desc: "Test all go packages"
+    aliases:
+      - "test-integration"
+      - "e2e"
+    cmds:
+      - cmd: go test -cover -timeout=2m -run ^TestIntegration -v github.com/tprasadtp/go-githubapp
+
+  go:test-go-githubapp:
+    desc: "Test all go packages"
+    aliases:
+      - "test-go-githubapp"
+    cmds:
+      - cmd: go test -cover -timeout=1m -short -v github.com/tprasadtp/go-githubapp
+
   pulumi:test-infra-up:
     desc: "Create/Update test infra"
     env:
