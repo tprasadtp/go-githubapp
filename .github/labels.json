@@ -65,6 +65,21 @@
     "name": "security"
   },
   {
+    "color": "ffde57",
+    "description": "Testing",
+    "name": "testing"
+  },
+  {
+    "color": "ffde57",
+    "description": "Repository meta tasks",
+    "name": "meta"
+  },
+  {
+    "color": "ffde57",
+    "description": "CI/CD",
+    "name": "ci/cd"
+  },
+  {
     "color": "ff0000",
     "description": "Urgent priority tasks",
     "name": "p/critical"
