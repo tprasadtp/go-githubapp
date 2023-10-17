@@ -3,7 +3,7 @@
 
 // An example CLI which can fetch installation tokens for a github app
 // and act like git credentials plugin.
-package main
+package main // import "github.com/tprasadtp/go-githubapp/examples/app-token"
 
 import (
 	"context"

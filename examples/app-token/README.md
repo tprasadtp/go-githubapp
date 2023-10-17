@@ -38,10 +38,10 @@ Flags:
 To obtain installation access token for all the repos,
 
 ```
-go run github.com/tprasadtp/go-githubapp/example@latest \
+go run github.com/tprasadtp/go-githubapp/examples/app-token@latest \
     -app-id <app-id> \
     -private-key <key-file.pem> \
-    -owner <github-username>
+    -owner <installation-owner>
 ```
 
 Should returns something like, where `ghs_xxxx`is installation token which can be used
@@ -50,7 +50,7 @@ for API and git operations.
 ```
 Token        : ghs_xxxxx
 Owner        : github-username
-Installation : 000001
+Installation : 9999
 Permissions  : map[contents:read issues:read metadata:read]
 user.name    : gh-integration-tests-app[bot]
 user.email   : <app-user-id>+gh-integration-tests-app[bot]@users.noreply.github.com
