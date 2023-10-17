@@ -32,7 +32,7 @@ func Usage() {
 	fmt.Fprintf(flag.CommandLine.Output(), "Tool to obtain installation access token or JWT for a Github App\n\n")
 	fmt.Fprintf(flag.CommandLine.Output(), "This is a simple example CLI and is not covered by semver compatibility guarantees.\n")
 	fmt.Fprintf(flag.CommandLine.Output(), "Use https://github.com/tprasadtp/gh-app-token if you need a CLI.\n\n")
-	fmt.Fprintf(flag.CommandLine.Output(), "Usage: go run github.com/tprasadtp/go-githubapp/example@latest\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Usage: go run github.com/tprasadtp/go-githubapp/examples/app-token@latest\n\n")
 	fmt.Fprintf(flag.CommandLine.Output(), "Flags:\n")
 	flag.PrintDefaults()
 }
