@@ -10,14 +10,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"strconv"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -75,28 +75,55 @@ type jwtRS256 struct {
 	internal crypto.Signer
 }
 
+// JWT header. This is always of type RS256.
+type jwtHeader struct {
+	Type string `json:"type"`
+	Alg  string `json:"alg"`
+}
+
+// JWT Payload as required by github app.
+type jwtPayload struct {
+	Issuer   string `json:"iss"`
+	IssuedAt int64  `json:"iat"`
+	Exp      int64  `json:"exp"`
+}
+
 // Mint mints new  JWT token.
 func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, error) {
-	// GitHub rejects expiry and issue timestamps that are not an integer,
-	// Truncate them before passing to jwt-go.
+	// GitHub rejects timestamps that are not an integer.
 	now = now.Truncate(time.Second)
 	iat := now.Add(-30 * time.Second)
 	exp := now.Add(2 * time.Minute)
-	t := jwt.NewWithClaims(jwt.SigningMethodRS256,
-		&jwt.RegisteredClaims{
-			IssuedAt:  jwt.NewNumericDate(iat),
-			ExpiresAt: jwt.NewNumericDate(exp),
-			Issuer:    strconv.FormatUint(iss, 10),
-		},
-	)
 
-	signingString, err := t.SigningString()
+	buf := bytes.NewBuffer(make([]byte, 0, 1024))
+	encoder := base64.NewEncoder(base64.RawURLEncoding, buf)
+
+	// Encode JWT Header.
+	header, err := json.Marshal(&jwtHeader{Alg: "RS256", Type: "JWT"})
 	if err != nil {
-		return JWT{}, fmt.Errorf("githubapp(jwt): failed to get jwt string: %w", err)
+		return JWT{}, fmt.Errorf("githubapp(jwt): failed to encode JWT header: %w", err)
 	}
+	_, _ = encoder.Write(header)
+	encoder.Close()
 
+	// Write separator.
+	buf.WriteByte('.')
+
+	// Encode JWT Payload.
+	payload, err := json.Marshal(&jwtPayload{
+		Issuer:   strconv.FormatUint(iss, 10),
+		Exp:      exp.Unix(),
+		IssuedAt: iat.Unix(),
+	})
+	if err != nil {
+		return JWT{}, fmt.Errorf("githubapp(jwt): failed to encode JWT payload: %w", err)
+	}
+	_, _ = encoder.Write(payload)
+	encoder.Close()
+
+	// Sign JWT header and payload.
 	hasher := sha256.New()
-	_, _ = hasher.Write([]byte(signingString))
+	_, _ = hasher.Write(buf.Bytes())
 
 	var signature []byte
 
@@ -113,12 +140,15 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 	}
 
 	if err != nil {
-		return JWT{}, fmt.Errorf("githubapp(jwt): failed to mint JWT: %w", err)
+		return JWT{}, fmt.Errorf("githubapp(jwt): failed to sign JWT: %w", err)
 	}
 
-	buf := bytes.NewBufferString(signingString)
+	// Write separator.
 	buf.WriteByte('.')
-	buf.WriteString(t.EncodeSegment(signature))
+
+	// Encode signature.
+	_, _ = encoder.Write(signature)
+	encoder.Close()
 
 	// BearerToken has incomplete metadata, but it will be handled by Transport.JWT.
 	return JWT{Token: buf.String(), Exp: exp, IssuedAt: iat}, nil

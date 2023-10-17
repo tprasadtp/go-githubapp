@@ -16,7 +16,14 @@ See [./internal/testdata/README.md](./internal/testdata/README.md).
 
 ## Integration tests
 
-`go test` will automatically run integration tests if _all_ the following environment variables are set and it can connect to `GO_GITHUBAPP_TEST_BASE_URL`.
+`go test` will automatically run integration tests if _all_ the required environment
+variables are set and it can connect to `GO_GITHUBAPP_TEST_BASE_URL`. Integration tests
+__will be skipped__ if `GO_GITHUBAPP_TEST_BASE_URL` returns 5xx errors.
+
+> **Warning**
+>
+> - Invalid environment variables result in test errors.
+
 
 | Environment Variable |  Description |
 | ---|---
@@ -25,8 +32,3 @@ See [./internal/testdata/README.md](./internal/testdata/README.md).
 | `GO_GITHUBAPP_TEST_APP_ID` | GitHub app of the app to be used _exclusively_ for testing.
 | `GO_GITHUBAPP_TEST_APP_PRIVATE_KEY` | GitHub app's private key. __MUST__ be in PEM encoded PKCS1 format.
 | `GO_GITHUBAPP_TEST_APP_PRIVATE_KEY_FILE` | Path to GitHub app's private key. __MUST__ be in PEM encoded PKCS1 format. This takes precedence over `GO_GITHUBAPP_TEST_APP_PRIVATE_KEY`.
-
-> **Warning**
->
-> - Invalid environment variables result in test errors.
-> - Integration tests will be skipped if `GO_GITHUBAPP_TEST_BASE_URL` returns 5xx errors.

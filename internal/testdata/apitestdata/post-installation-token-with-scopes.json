@@ -1,0 +1,8 @@
+{
+    "token": "ghs_xxxx",
+    "expires_at": "2023-10-16T14:40:16Z",
+    "permissions": {
+      "metadata": "read"
+    },
+    "repository_selection": "selected"
+  }

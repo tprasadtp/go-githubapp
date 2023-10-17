@@ -240,8 +240,10 @@ func WithPermissions(permissions ...string) Option {
 			for _, item := range permissions {
 				item = strings.ToLower(item)
 				if permissionRegEx.MatchString(item) {
-					scope, action, _ := strings.Cut(item, ":")
-					m[scope] = action
+					// Ignore error checks as regex already validates
+					// that permissions are in format <scope>:<level> format.
+					scope, level, _ := strings.Cut(item, ":")
+					m[scope] = level
 				} else {
 					invalid = append(invalid, item)
 				}
