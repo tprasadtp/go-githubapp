@@ -34,13 +34,14 @@ func main() {
         githubapp.WithPermissions("contents:read")
     )
 
-	client := &http.Client{
-		Transport: rt,
-	}
+    client := &http.Client{
+        Transport: rt,
+    }
 
-	resp, err := client.Get("/repos/<username>/<repo>/readme")
+    resp, err := client.Get("/repos/<username>/<repo>/readme")
+    // Handle error
     if err != nil {
-        Handle Error....
+        panic(err)
     }
 
     doStuff....
