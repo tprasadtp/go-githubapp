@@ -33,7 +33,6 @@ Flags:
         Comma separated list of repositories
 ```
 
-
 ## Example Usage
 
 To obtain installation access token for all the repos,
@@ -52,7 +51,6 @@ for API and git operations.
 Token        : ghs_xxxxx
 Owner        : github-username
 Installation : 000001
-Repositories : [go-githubapp-repo-one go-githubapp-repo-two]
 Permissions  : map[contents:read issues:read metadata:read]
 user.name    : gh-integration-tests-app[bot]
 user.email   : <app-user-id>+gh-integration-tests-app[bot]@users.noreply.github.com
