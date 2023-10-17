@@ -8,15 +8,19 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
 )
 
@@ -59,10 +63,100 @@ func (s *ctxSigner) Public() crypto.PublicKey {
 	return s.signer.Public()
 }
 
-func TestJWTSignerRS256(t *testing.T) {
+func TestJWTSignerRS256_Valid(t *testing.T) {
+	tt := []struct {
+		name   string
+		appid  uint64
+		ctx    context.Context
+		signer crypto.Signer
+	}{
+		{
+			name:   "rsa-key",
+			signer: testkeys.RSA2048(),
+			appid:  99,
+		},
+		{
+			name:   "ctx-signer-rsa-key",
+			signer: &ctxSigner{signer: testkeys.RSA2048()},
+			appid:  99,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			token, err := NewJWT(tc.ctx, tc.appid, tc.signer)
+
+			if err != nil {
+				t.Fatalf("Failed to sign JWT: %s", err)
+			}
+
+			// Do not use this in server side code which verifies JWT.
+			// This is not robust nor cryptographically correct.
+			// This is just enough for unit tests.
+			parts := strings.Split(token.Token, ".")
+
+			if len(parts) != 3 {
+				t.Fatalf("Malformed JWT has %d parts", len(parts))
+			}
+
+			// Verify signature.
+			data := parts[0] + "." + parts[1]
+			hasher := sha256.New()
+			hasher.Write([]byte(data))
+			hash := hasher.Sum(nil)
+
+			signatureDecoded, err := base64.RawURLEncoding.DecodeString(parts[2])
+			if err != nil {
+				t.Fatalf("signature is not base64 url encoded: %s", err)
+			}
+
+			err = rsa.VerifyPKCS1v15(
+				tc.signer.Public().(*rsa.PublicKey),
+				crypto.SHA256, hash, signatureDecoded)
+			if err != nil {
+				t.Fatalf("jwt signature is invalid: %s", err)
+			}
+
+			// Verify header
+			headerDecoded, err := base64.RawURLEncoding.DecodeString(parts[0])
+			if err != nil {
+				t.Errorf("JWT header is not base64 url encoded: %s", err)
+			}
+			header := jwtHeader{}
+			err = json.Unmarshal(headerDecoded, &header)
+			if err != nil {
+				t.Errorf("JWT header not JSON encoded: %s", err)
+			}
+			expectedHeader := jwtHeader{Alg: "RS256", Type: "JWT"}
+			if !reflect.DeepEqual(expectedHeader, header) {
+				t.Errorf("expected JWT header=%v, got=%v", expectedHeader, header)
+			}
+
+			// Verify Payload
+			payloadDecoded, err := base64.RawURLEncoding.DecodeString(parts[1])
+			if err != nil {
+				t.Errorf("JWT payload is not base64 url encoded: %s", err)
+			}
+			payload := jwtPayload{}
+			err = json.Unmarshal(payloadDecoded, &payload)
+			if err != nil {
+				t.Errorf("JWT payload not JSON encoded: %s", err)
+			}
+
+			appid, err := strconv.ParseUint(payload.Issuer, 10, 64)
+			if err != nil {
+				t.Errorf("payload.Issuer is not a integer")
+			}
+
+			if appid != tc.appid {
+				t.Errorf("expected appid=%d, got=%d", tc.appid, appid)
+			}
+		})
+	}
+}
+
+func TestJWTSignerRS256_Invalid(t *testing.T) {
 	type testCase struct {
 		name   string
-		ok     bool
 		appid  uint64
 		ctx    context.Context
 		signer crypto.Signer
@@ -123,44 +217,17 @@ func TestJWTSignerRS256(t *testing.T) {
 			signer: &ctxSigner{signer: testkeys.RSA2048()},
 			appid:  99,
 		},
-		{
-			name:   "rsa-key",
-			signer: testkeys.RSA2048(),
-			appid:  99,
-			ok:     true,
-		},
-		{
-			name:   "ctx-signer-rsa-key",
-			signer: &ctxSigner{signer: testkeys.RSA2048()},
-			appid:  99,
-			ok:     true,
-		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			token, err := NewJWT(tc.ctx, tc.appid, tc.signer)
 
-			if tc.ok {
-				if err != nil {
-					t.Errorf("Failed to sign JWT: %s", err)
-				}
+			if err == nil {
+				t.Errorf("Expected error, got nil")
+			}
 
-				pubKeyFunc := func(t *jwt.Token) (any, error) {
-					return tc.signer.Public(), nil
-				}
-
-				_, err = jwt.Parse(token.Token, pubKeyFunc)
-				if err != nil {
-					t.Errorf("Failed to parse jwt: %s", err)
-				}
-			} else {
-				if err == nil {
-					t.Errorf("Expected error, got nil")
-				}
-
-				if !reflect.DeepEqual(token, JWT{}) {
-					t.Errorf("Must return zero value %T upon errors", token)
-				}
+			if !reflect.DeepEqual(token, JWT{}) {
+				t.Errorf("Must return zero value %T upon errors", token)
 			}
 		})
 	}
@@ -247,7 +314,7 @@ func BenchmarkMintJWT(b *testing.B) {
 	ctx := context.Background()
 	var v JWT
 
-	b.Run("jwt/v5", func(b *testing.B) {
+	b.Run("jwt", func(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {

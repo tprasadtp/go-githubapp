@@ -4,15 +4,18 @@
 package githubapp
 
 import (
+	"maps"
 	"net/http"
 	"net/url"
+	"reflect"
 	"slices"
 	"testing"
 
 	"github.com/tprasadtp/go-githubapp/internal"
+	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
-func TestOptions(t *testing.T) {
+func TestOptions_Nils(t *testing.T) {
 	t.Run("all-nils", func(t *testing.T) {
 		if Options(nil, nil, WithEndpoint(""), WithRepositories()) != nil {
 			t.Errorf("expected nil")
@@ -27,13 +30,13 @@ func TestOptions(t *testing.T) {
 
 	t.Run("no-repos", func(t *testing.T) {
 		if WithRepositories() != nil {
-			t.Errorf("WithRepositories with no-args  must return nil")
+			t.Errorf("WithRepositories with no-args must return nil")
 		}
 	})
 
 	t.Run("no-permissions", func(t *testing.T) {
 		if WithPermissions() != nil {
-			t.Errorf("WithPermissions with no-args  must return nil")
+			t.Errorf("WithPermissions with no-args must return nil")
 		}
 	})
 
@@ -76,14 +79,13 @@ func TestOptions(t *testing.T) {
 }
 
 func TestWithRepositories(t *testing.T) {
-	type testCase struct {
+	tt := []struct {
 		name   string
 		input  []string
 		expect []string // must be sorted
 		owner  string
 		ok     bool
-	}
-	tt := []testCase{
+	}{
 		{
 			name:  "with-single-dot",
 			input: []string{"."},
@@ -165,13 +167,12 @@ func TestWithRepositories(t *testing.T) {
 }
 
 func TestWithOwner(t *testing.T) {
-	type testCase struct {
+	tt := []struct {
 		name   string
 		input  string
 		expect string
 		ok     bool
-	}
-	tt := []testCase{
+	}{
 		{
 			name:  "with-single-dot",
 			input: ".",
@@ -241,112 +242,124 @@ func TestWithOwner(t *testing.T) {
 }
 
 func TestWithEndpoint(t *testing.T) {
-	t.Run("empty", func(t *testing.T) {
-		opts := Options(WithEndpoint(""))
-		if opts != nil {
-			t.Errorf("on empty endpoint options should return nil")
-		}
-	})
-	t.Run("invalid-protocol", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithEndpoint("ftp://endpoint.api-endpoint-golang.test"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		if transport.baseURL != nil {
-			t.Errorf("transport baseURL should not be modified")
-		}
-	})
-	t.Run("url-has-fragments", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithEndpoint("https://api-endpoint-golang.test/endpoint#foo"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		if transport.baseURL != nil {
-			t.Errorf("transport baseURL should not be modified")
-		}
-	})
+	tt := []struct {
+		name   string
+		input  string
+		ok     bool
+		expect *url.URL
+	}{
+		{
+			name:  "invalid-protocol",
+			input: "ftp://endpoint.api-endpoint-golang.test",
+		},
+		{
+			name:  "url-has-fragments",
+			input: "https://api-endpoint-golang.test/endpoint#foo",
+		},
+		{
+			name:  "url-has-queries",
+			input: "https://api-endpoint-golang.test/endpoint?foo=bar",
+		},
+		{
+			name:  "invalid-url-1",
+			input: "https://url is invalid/",
+		},
+		{
+			name:  "invalid-url-1",
+			input: "https://url is invalid/",
+		},
+		{
+			name:  "default",
+			input: api.DefaultEndpoint,
+			expect: func() *url.URL {
+				v, _ := url.Parse(api.DefaultEndpoint)
+				return v
+			}(),
+			ok: true,
+		},
+		{
+			name:  "custom",
+			input: "https://go-githubapp.golang.test/",
+			expect: func() *url.URL {
+				v, _ := url.Parse("https://go-githubapp.golang.test/")
+				return v
+			}(),
+			ok: true,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			transport := Transport{}
+			opts := WithEndpoint(tc.input)
+			err := opts.apply(&transport)
+			if tc.ok {
+				if err != nil {
+					t.Errorf("expected no error, got %s", err)
+				}
 
-	t.Run("url-has-queries", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithEndpoint("https://api-endpoint-golang.test/endpoint?foo=bar"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		if transport.baseURL != nil {
-			t.Errorf("transport baseURL should not be modified")
-		}
-	})
-	t.Run("url-invalid-1", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithEndpoint("https://url is invalid/"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		if transport.baseURL != nil {
-			t.Errorf("transport baseURL should not be modified")
-		}
-	})
-	t.Run("url-invalid-2", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithEndpoint("https://url-is-#invalid/"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		if transport.baseURL != nil {
-			t.Errorf("transport baseURL should not be modified")
-		}
-	})
-
-	t.Run("url-valid-default", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithEndpoint(internal.DefaultEndpoint))
-		err := opts.apply(&transport)
-		if err != nil {
-			t.Errorf("expected no error, got %s", err)
-		}
-		if transport.baseURL.String() != internal.DefaultEndpoint {
-			t.Errorf("transport baseURL should be %s, got %s",
-				internal.DefaultEndpoint, transport.baseURL)
-		}
-	})
+				if !reflect.DeepEqual(transport.baseURL, tc.expect) {
+					t.Errorf("expected=%v, got=%v", tc.expect, transport.baseURL)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if transport.baseURL != nil {
+					t.Errorf("transport baseURL should not be modified")
+				}
+			}
+		})
+	}
 }
 
 func TestWithPermissions(t *testing.T) {
-	t.Run("invalid-scope-levels", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithPermissions("issues:read", "contents:foo"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected an error, got nil")
-		}
-		if transport.scopes != nil {
-			t.Errorf("transport.scopes should be nil: %v", transport.scopes)
-		}
-	})
-	t.Run("invalid-scope-format", func(t *testing.T) {
-		transport := Transport{}
-		opts := Options(WithPermissions("issues=read", "contents=foo"))
-		err := opts.apply(&transport)
-		if err == nil {
-			t.Errorf("expected an error, got nil")
-		}
-		if transport.scopes != nil {
-			t.Errorf("transport.scopes should be nil: %v", transport.scopes)
-		}
-	})
-	t.Run("nil-scopes", func(t *testing.T) {
-		opts := Options(WithPermissions())
-		if opts != nil {
-			t.Errorf("expected nil options when no scopes are specified")
-		}
-	})
+	tt := []struct {
+		name   string
+		input  []string
+		ok     bool
+		expect map[string]string
+	}{
+		{
+			name:  "with-no-level",
+			input: []string{"issues"},
+		},
+		{
+			name:  "with-separator-no-level",
+			input: []string{"issues:"},
+		},
+		{
+			name:  "multiple-separators",
+			input: []string{"issues:write:write"},
+		},
+		{
+			name:  "invalid-level",
+			input: []string{"issues:root"},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			transport := Transport{}
+			opts := Options(WithPermissions(tc.input...))
+			err := opts.apply(&transport)
+			if tc.ok {
+				if err != nil {
+					t.Errorf("expected no error, got %s", err)
+				}
+
+				if !maps.Equal(transport.scopes, tc.expect) {
+					t.Errorf("expected=%v, got=%v", tc.expect, transport.scopes)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("expected an error, got nil")
+				}
+				if transport.scopes != nil {
+					t.Errorf("transport.scopes should be nil: %v", transport.scopes)
+				}
+			}
+		})
+	}
 }
 
 func TestWithRoundTripper(t *testing.T) {
@@ -402,7 +415,7 @@ func TestWithInstallationID(t *testing.T) {
 		}
 
 		if transport.installID != 99 {
-			t.Errorf("expected instalaltion id to be 99, got %d", transport.installID)
+			t.Errorf("expected installation id to be 99, got %d", transport.installID)
 		}
 	})
 }

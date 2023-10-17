@@ -21,7 +21,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/tprasadtp/go-githubapp/internal"
 	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
@@ -64,7 +63,6 @@ type Transport struct {
 	minter      jwtMinter         // jwt minter
 	bearer      atomic.Value      // bearer token
 	token       atomic.Value      // installation token
-	tokenURL    string            // token url to create installation token
 	botUsername string            // bot user.name
 	botEmail    string            // bot user.email
 	scopes      map[string]string // scoped permissions
@@ -138,7 +136,7 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 
 	// If endpoint is not configured, use default endpoint.
 	if t.baseURL == nil {
-		t.baseURL, _ = url.Parse(internal.DefaultEndpoint)
+		t.baseURL, _ = url.Parse(api.DefaultEndpoint)
 	}
 
 	// If context is nil, assign a default context.
@@ -330,11 +328,6 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 			t.installID, *getInstallationResp.ID)
 	}
 
-	// Save access token url for the installation.
-	if getInstallationResp.AccessTokensURL != nil {
-		t.tokenURL = *getInstallationResp.AccessTokensURL
-	}
-
 	// Save owner if not specified. This is the case where only installation id is given.
 	if t.owner == "" {
 		t.owner = *getInstallationResp.Account.Login
@@ -481,9 +474,14 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 			fmt.Errorf("githubapp(token): failed to marshal token request: %w", err)
 	}
 
+	tokenURL := t.baseURL.JoinPath(
+		"app", "installations",
+		strconv.FormatUint(t.installID, 10),
+		"access_tokens")
+
 	// Force using JWT via ctxWithJWTKey.
 	r, err := http.NewRequestWithContext(
-		ctxWithJWTKey(ctx), http.MethodPost, t.tokenURL, bytes.NewBuffer(buf))
+		ctxWithJWTKey(ctx), http.MethodPost, tokenURL.String(), bytes.NewBuffer(buf))
 	if err != nil {
 		return InstallationToken{},
 			fmt.Errorf("githubapp(token): failed to build token request: %w", err)
@@ -587,10 +585,10 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		clone.Header.Set(apiVersionHeader, apiVersionHeaderValue)
 	}
 
-	// installation id is populated when WithRepositories or WithOrganization
+	// Installation id is populated when WithRepositories or WithOrganization
 	// or WithInstallationID etc are used. ctxHasKeyJWT returns true when context
-	// value is set. If any of these are true, transport will use JWT for authentication.
-	// Otherwise uses installation access token for authentication.
+	// value is set. if ctx is set or no install id is specified, transport will
+	// use JWT for authentication. Otherwise uses installation access token.
 	if t.installID == 0 || ctxHasKeyJWT(ctx) {
 		jwt, err := t.JWT(ctx)
 		if err != nil {

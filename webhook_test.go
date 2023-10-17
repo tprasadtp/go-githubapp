@@ -309,9 +309,9 @@ func TestVerifyWebHookSignature_Replay(t *testing.T) {
 		}
 
 		t.Run("Valid-"+strings.TrimSuffix(tc, ".replay"), func(t *testing.T) {
-			webhook, werr := VerifyWebHookRequest(secret, request)
-			if werr != nil {
-				t.Errorf("expected no error, got: %s", werr)
+			webhook, err := VerifyWebHookRequest(secret, request)
+			if err != nil {
+				t.Errorf("expected no error, got: %s", err)
 			}
 			if webhook.DeliveryID != strings.TrimSuffix(tc, ".replay") {
 				t.Errorf("webhook.Delivery id is not valid")
@@ -319,9 +319,9 @@ func TestVerifyWebHookSignature_Replay(t *testing.T) {
 		})
 
 		t.Run("Invalid-"+strings.TrimSuffix(tc, ".replay"), func(t *testing.T) {
-			webhook, werr := VerifyWebHookRequest("secret", request)
-			if !errors.Is(werr, ErrWebhookSignature) {
-				t.Errorf("expected error %s, got: %s", ErrWebhookSignature, werr)
+			webhook, err := VerifyWebHookRequest("webhook-secret-invalid", request)
+			if !errors.Is(err, ErrWebhookSignature) {
+				t.Errorf("expected error %s, got: %s", ErrWebhookSignature, err)
 			}
 			if !reflect.DeepEqual(webhook, WebHook{}) {
 				t.Errorf("invalid signature should not populate webhook fields")

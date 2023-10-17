@@ -5,7 +5,8 @@ HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for Web
 [![Go Reference](https://pkg.go.dev/badge/github.com/tprasadtp/go-githubapp)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-githubapp?label=go&logo=go&logoColor=white)
 [![test](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml)
+[![lint](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml)
 [![License](https://img.shields.io/github/license/tprasadtp/go-githubapp)](https://github.com/tprasadtp/go-githubapp/blob/master/LICENSE)
-![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/tprasadtp/go-githubapp?color=7f50a6&label=release&logo=semver&sort=semver)
+![release-tag](https://img.shields.io/github/v/tag/tprasadtp/go-githubapp?color=7f50a6&label=release&logo=semver&sort=semver)
 
-For documentation and examples, check https://pkg.go.dev/github.com/tprasadtp/go-githubapp.
+For documentation and examples, check [godocs](https://pkg.go.dev/github.com/tprasadtp/go-githubapp).

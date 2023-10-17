@@ -73,7 +73,7 @@ linters-settings:
   goconst:
     match-constant: true
     min-len: 3
-    min-occurrences: 5
+    min-occurrences: 9
     ignore-tests: true
     ignore-calls: true
     numbers: false
@@ -282,10 +282,28 @@ linters-settings:
     # Default: false
     all: true
 
+  thelper:
+    test:
+      # Check t.Helper() begins helper function.
+      # Default: true
+      begin: false
+    benchmark:
+      # Check b.Helper() begins helper function.
+      # Default: true
+      begin: false
+    tb:
+      # Check tb.Helper() begins helper function.
+      # Default: true
+      begin: false
+    fuzz:
+      # Check f.Helper() begins helper function.
+      # Default: true
+      begin: false
+
 linters:
   disable-all: true
   enable:
-    ## enabled by default
+    ## Enabled by default
     - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
     - gosimple # specializes in simplifying a code
     - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
@@ -294,7 +312,7 @@ linters:
     - typecheck # like the front-end of a Go compiler, parses and type-checks Go code
     - unused # checks for unused constants, variables, functions and types
 
-    ## disabled by default
+    ## Disabled by default
     - asasalint # checks for pass []any as any in variadic func(...any)
     - asciicheck # checks that your code does not contain non-ASCII identifiers
     - bidichk # checks for dangerous unicode character sequences
@@ -399,43 +417,53 @@ issues:
   # Default: 3
   max-same-issues: 50
   exclude-rules:
+    # It is mostly okay to shadow err. ineffassign will warn,
+    # if error checking is not done immediately. However,
+    # same MUST NOT be done for ctx as context is a "container".
     - linters:
         - govet
-      text: "shadow: declaration of \"err\" shadows declaration"
+      text: 'shadow: declaration of "err" shadows declaration at'
 
+    # Ignore long lines for go generate.
     - source: "^//\\s*go:generate\\s"
       linters:
         - lll
 
+    # Ignore TODO.
     - source: "(noinspection|TODO)"
       linters:
         - godot
 
-    - path: '(.*)_test\.go'
+    # Test might add more checks to the branch and keeps them uniform
+    # accross all test cases. This also improves test code redablility.
+    - path: '(.+)_test\.go'
+      text: "elseif: can replace 'else {if cond {}}' with 'else if cond {}'"
+
+    # Disable some linters for testing code.
+    - path: '(.+)_test\.go'
       linters:
         - dupl
+        - nestif
         - funlen
+        - cyclop
         - goconst
-        - gocognit
         - gocyclo
-        - funlen
+        - gocognit
         - wrapcheck
         - containedctx
 
+    # Disable some linters for generated code.
     - path: 'testdata\.go'
       linters:
         - funlen
-        - wrapcheck
         - gocyclo
         - goconst
-        - gocognit
         - gocyclo
-
-    - path: 'generate\.go'
-      linters:
+        - gocognit
         - wrapcheck
 
-    - path: 'example\.go'
+    # Disable some linters for ad-hoc scripts and example scripts.
+    - path: '(example|generate)\.go'
       linters:
         - wrapcheck
         - forbidigo

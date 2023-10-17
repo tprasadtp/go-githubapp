@@ -53,11 +53,6 @@ func transportCmp(t *testing.T, a, b *Transport) bool {
 		return false
 	}
 
-	if a.tokenURL != b.tokenURL {
-		t.Logf("a.tokenURL=%s, b.tokenURL=%s", a.tokenURL, b.tokenURL)
-		return false
-	}
-
 	if !reflect.DeepEqual(a.next, b.next) {
 		t.Logf("a.next=%#v, b.next=%#v", a.next, b.next)
 		return false
@@ -100,16 +95,14 @@ func TestCtxJWT(t *testing.T) {
 }
 
 func TestNewTransport(t *testing.T) {
-	type testCase struct {
+	tt := []struct {
 		name    string
 		ok      bool
 		appID   uint64
 		signer  crypto.Signer
 		options []Option
 		expect  *Transport
-	}
-
-	tt := []testCase{
+	}{
 		{
 			name: "no-signer",
 		},
@@ -188,7 +181,14 @@ func TestNewTransport(t *testing.T) {
 			signer:  testkeys.ECP256(),
 			options: []Option{WithRepositories("foo/bar", "foo/baz")},
 			appID:   99,
-		}, {
+		},
+		{
+			name:    "repo-unsupported-key-ed25519",
+			signer:  testkeys.ED25519(),
+			options: []Option{WithRepositories("foo/bar", "foo/baz")},
+			appID:   99,
+		},
+		{
 			name:    "repo-unsupported-key-rsa-1024",
 			signer:  testkeys.RSA1024(),
 			options: []Option{WithRepositories("foo/bar", "foo/baz")},

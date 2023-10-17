@@ -17,13 +17,11 @@ import (
 	"testing"
 
 	"github.com/tprasadtp/go-githubapp"
-	"github.com/tprasadtp/go-githubapp/internal"
 	"github.com/tprasadtp/go-githubapp/internal/api"
+	"github.com/tprasadtp/go-githubapp/internal/testkeys"
 )
 
 // This tests makes live API calls to default github api endpoint.
-//
-//nolint:cyclop
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skipf("Skip => Integration tests in short mode")
@@ -78,7 +76,7 @@ func TestIntegration(t *testing.T) {
 	// Check if GO_GITHUBAPP_TEST_BASE_URL is set.
 	baseURLEnv := os.Getenv("GO_GITHUBAPP_TEST_BASE_URL")
 	if baseURLEnv == "" {
-		baseURLEnv = internal.DefaultEndpoint
+		baseURLEnv = api.DefaultEndpoint
 	}
 
 	// Verify endpoint URL is valid.
@@ -112,6 +110,32 @@ func TestIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
+	t.Run("InvalidAppPrivateKey", func(t *testing.T) {
+		transport, err := githubapp.NewTransport(ctx, appID,
+			testkeys.RSA2048(), githubapp.WithEndpoint(baseURLEnv))
+		if err == nil {
+			t.Errorf("expected an error, got nil")
+		}
+
+		if transport != nil {
+			t.Errorf("expected NewTransport to return nil on invalid keys")
+		}
+	})
+
+	t.Run("InvalidInstallation", func(t *testing.T) {
+		transport, err := githubapp.NewTransport(ctx, appID,
+			testkeys.RSA2048(), githubapp.WithEndpoint(baseURLEnv),
+			githubapp.WithRepositories("tprasadtp/go-githubapp"),
+		)
+		if err == nil {
+			t.Errorf("expected an error, got nil")
+		}
+
+		if transport != nil {
+			t.Errorf("expected NewTransport to return nil on not installed repository")
+		}
+	})
 
 	// Verify JWT returns valid app.
 	t.Run("VerifyJWT", func(t *testing.T) {
@@ -162,6 +186,15 @@ func TestIntegration(t *testing.T) {
 
 		if *app.ID != int64(appID) {
 			t.Errorf("%s %s: expected App-ID %d, got %d", request.Method, request.URL, appID, *app.ID)
+		}
+
+		// Transport Attributes
+		if transport.AppID() != appID {
+			t.Errorf("expected app id=%d, got=%d", appID, transport.AppID())
+		}
+
+		if transport.AppName() == "" {
+			t.Errorf("AppName not populated")
 		}
 	})
 
@@ -243,6 +276,34 @@ func TestIntegration(t *testing.T) {
 
 		if !strings.Contains(err.Error(), "422") {
 			t.Errorf("error string should contain \"422\" error code")
+		}
+	})
+
+	t.Run("TransportAttributes", func(t *testing.T) {
+		transport, err := githubapp.NewTransport(
+			ctx, appID, signer,
+			githubapp.WithEndpoint(baseURLEnv),
+			githubapp.WithOwner(ghOwnerEnv),
+		)
+
+		if err != nil {
+			t.Fatalf("Failed to build transport: %s", err)
+		}
+
+		if transport.BotUsername() == "" {
+			t.Errorf("BotUsername() returns empty")
+		}
+
+		if transport.BotCommitterEmail() == "" {
+			t.Errorf("BotCommitterEmail() returns empty")
+		}
+
+		if transport.AppID() != appID {
+			t.Errorf("Expected app id=%d, got=%d", appID, transport.AppID())
+		}
+
+		if transport.AppName() == "" {
+			t.Errorf("Expected app id to be populated, but got empty")
 		}
 	})
 

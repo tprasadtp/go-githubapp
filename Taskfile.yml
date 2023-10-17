@@ -88,3 +88,10 @@ tasks:
     dir: internal/testinfra
     cmds:
       - cmd: pulumi up
+
+  go:lint:
+    desc: "Run golangci-lint"
+    aliases:
+      - "lint"
+    prefix: "lint"
+    cmd: golangci-lint run
