@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package main // import "github.com/tprasadtp/go-githubapp/examples/go-github-readme"
+package main
 
 import (
 	"context"
@@ -26,8 +26,8 @@ var appID uint64
 var slug string
 
 func Usage() {
-	fmt.Fprintf(flag.CommandLine.Output(), "CLI to get README for a repository\n\n")
-	fmt.Fprintf(flag.CommandLine.Output(), "This is an example CLI and is not covered by semver compatibility guarantees.\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Example CLI to get README for a repository\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "This is an example CLI and is not covered by semver compatibility guarantees.\n\n")
 	fmt.Fprintf(flag.CommandLine.Output(), "Flags:\n")
 	flag.PrintDefaults()
 }
