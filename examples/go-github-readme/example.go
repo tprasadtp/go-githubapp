@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-package main
+package main // import "github.com/tprasadtp/go-githubapp/examples/go-github-readme"
 
 import (
 	"context"
