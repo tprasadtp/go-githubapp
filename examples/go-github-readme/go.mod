@@ -1,10 +1,10 @@
-module github.com/tprasadtp/go-githubapp/examples/go-github
+module github.com/tprasadtp/go-githubapp/examples/go-github-readme
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/google/go-github/v55 v55.0.0
-	github.com/tprasadtp/go-githubapp v0.0.0-00010101000000-000000000000
+	github.com/tprasadtp/go-githubapp v0.0.0-20231017233335-85b87939c69f
 )
 
 require (
@@ -14,5 +14,3 @@ require (
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 )
-
-replace github.com/tprasadtp/go-githubapp => ../../

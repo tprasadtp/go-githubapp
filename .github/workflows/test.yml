@@ -15,6 +15,8 @@ jobs:
           - windows-latest
           - macos-latest
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,3 +37,11 @@ jobs:
           GO_GITHUBAPP_TEST_OWNER: ${{ vars.GO_GITHUBAPP_TEST_OWNER }}
           GO_GITHUBAPP_TEST_APP_ID: ${{ vars.GO_GITHUBAPP_TEST_APP_ID }}
           GO_GITHUBAPP_TEST_APP_PRIVATE_KEY: ${{ secrets.GO_GITHUBAPP_TEST_APP_PRIVATE_KEY }}
+
+      - name: Ensure examples work (workspaces)
+        run: |
+          go work init .
+          go work use .
+          go work use ./examples/go-github-readme
+          go run github.com/tprasadtp/go-githubapp/examples/app-token@latest -help
+          go run github.com/tprasadtp/go-githubapp/examples/go-github-readme@latest -help

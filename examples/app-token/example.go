@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-// An example CLI which can fetch installation tokens for a github app
-// and act like git credentials plugin.
+// An example CLI which can fetch installation tokens for a github app.
 package main // import "github.com/tprasadtp/go-githubapp/examples/app-token"
 
 import (

@@ -19,7 +19,6 @@ HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for Web
 It _will_ override `Authorization` header. None of the other headers are modified. Thus,
 It is user's responsibility to set appropriate headers as required.
 
-
 ## RoundTripper Example
 
 ```go
@@ -105,6 +104,7 @@ headers. See API docs for more info.
 
 [google/go-github]: https://github.com/google/go-github
 [github.com/shurcooL/githubv4]: https://github.com/shurcooL/githubv4
+[github.com/tprasadtp/cryptokms]: https://github.com/tprasadtp/cryptokms
 
 [http.RoundTripper]: https://pkg.go.dev/net/http#RoundTripper
 [crypto.Signer]: https://pkg.go.dev/crypto#Signer
