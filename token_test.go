@@ -348,7 +348,7 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/users/%s[bot]", apitestdata.AppSlug):
 					key = "get-user-bot"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
@@ -376,7 +376,7 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/users/%s[bot]", apitestdata.AppSlug):
 					key = "get-user-bot"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
@@ -408,7 +408,7 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/users/%s[bot]", apitestdata.AppSlug):
 					key = "get-user-bot"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
@@ -439,13 +439,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/users/%s[bot]", apitestdata.AppSlug):
 					key = "get-user-bot"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -468,13 +468,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/users/%s[bot]", apitestdata.AppSlug):
 					key = "get-user-bot"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -490,13 +490,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 					w.WriteHeader(http.StatusUnauthorized)
 					key = "error-invalid-jwt"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -526,19 +526,21 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/repos/%s/%s/installation",
 					apitestdata.InstallationOwner, apitestdata.InstallationRepository):
 					key = "get-installation-by-repo"
+				case fmt.Sprintf("/users/%s/installation", apitestdata.InstallationOwner):
+					key = "get-installation-by-user"
 				case fmt.Sprintf("/app/installations/%d/access_tokens", apitestdata.InstallationID):
 					key = "error-installation-token-no-access"
 					w.WriteHeader(http.StatusUnprocessableEntity)
 				case fmt.Sprintf("/users/%s[bot]", apitestdata.AppSlug):
 					key = "get-user-bot"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -555,13 +557,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 				case fmt.Sprintf("/app/installations/%d", apitestdata.InstallationID):
 					key = "get-installation-disabled"
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -579,13 +581,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 					key = "error-not-found"
 					w.WriteHeader(http.StatusNotFound)
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -603,13 +605,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 					w.WriteHeader(http.StatusServiceUnavailable)
 					return
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -637,13 +639,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 					key = "error-not-found"
 					w.WriteHeader(http.StatusNotFound)
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -671,13 +673,13 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 					w.WriteHeader(http.StatusServiceUnavailable)
 					return
 				default:
-					panic(fmt.Sprintf("Unknown/Invalid Request => %s", r.URL))
+					t.Errorf("Unknown/Invalid Request => %s", r.URL)
 				}
 				resp, ok := m[key]
 				if ok {
 					_, _ = w.Write(resp)
 				} else {
-					panic(fmt.Sprintf("Response key not found %s", key))
+					t.Errorf("Response key not found %s", key)
 				}
 			}),
 		},
@@ -685,10 +687,9 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 	ctx := context.Background()
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewUnstartedServer(tc.handler)
+			server := httptest.NewServer(tc.handler)
 			t.Logf("Running test server - %s", server.URL)
 
-			server.Start()
 			defer server.Close()
 
 			options := slices.Clone(tc.options)
