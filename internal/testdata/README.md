@@ -1,6 +1,6 @@
 # Generating test data
 
-For generating test data, use a non production isolated github organization.
+For generating test data, use a non-production, isolated GitHub organization.
 See [../testinfra/README.md](../testinfra/README.md) for creating required
 resources.
 
@@ -29,7 +29,7 @@ resources.
     ```
 
 - Create some repository events like opening an issue or commenting on an issue.
-Optionally use installation access token which has appropriate permissions.
+Optionally, use installation access token which has appropriate permissions.
 
     ```console
     gh issue create --repo <sandbox-org>/go-githubapp-repo-one \
@@ -37,4 +37,4 @@ Optionally use installation access token which has appropriate permissions.
         --body "test issue"
     ```
 
-- Stop both test webhook server and webhook forwarder.
+- Stop both test webhook server and webhook-forwarder.

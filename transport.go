@@ -28,7 +28,7 @@ var (
 	_ http.RoundTripper = (*Transport)(nil)
 )
 
-// keyJWT is context key to indicate round tripper needs to to use jwt
+// keyJWT is context key to indicate round tripper needs to use jwt
 // instead of installation token.
 type keyJWT struct{}
 
@@ -49,9 +49,10 @@ func ctxHasKeyJWT(ctx context.Context) bool {
 // http.RoundTripper and provides GitHub Apps authenticating as a
 // GitHub App or as an GitHub app installation.
 //
-// 'Authorization' header is automatically populated with suitable installation
-// token or JWT token for all requests. If it already exists it is ignored.
-// Token renewal requests will always override 'Accept' and "X-GitHub-Api-Version" headers.
+// 'Authorization' header is automatically populated with a suitable installation
+// token or JWT token for all requests. If it already exists, it is ignored.
+// Token renewal requests will always override 'Accept' and "X-GitHub-Api-Version"
+// headers.
 type Transport struct {
 	appID       uint64            // app ID
 	appSlug     string            // app slug/name
@@ -73,20 +74,20 @@ type Transport struct {
 // How [Transport] authenticates depends on installation options specified.
 //
 //   - If no installation options are specified, then [Transport] can only authenticate
-//     as app (using JWT). This is not something you want typically, as very limited number
+//     as app (using JWT). This is not something you want typically, as a very limited number
 //     of actions like accessing available installations.
 //   - Use [WithInstallationID] to have access to all permissions available to the
 //     installation including organization scopes and repositories. This can be used
-//     together with [WithPermissions] to limit scope of access tokens. Typical
+//     together with [WithPermissions] to limit the scope of access tokens. A typical
 //     example would be to close all stale issues for all repositories in an organization.
 //     This task does not require access to code, thus "issues:write" permission should
 //     be sufficient.
 //   - Use [WithOwner] if your app has only access to organization/user permissions
-//     and none of the repositories of the owner. Typical example would be an
-//     app which manages self hosted runners in an organization or manages organization
+//     and none of the repositories belonging to the owner. A typical example would be an
+//     app, which manages self-hosted runners in an organization or manages organization
 //     level projects.
 //   - Use [WithRepositories] if your app intends to access only a set of repositories.
-//     Do note that, if app has access to organization permissions they will also be
+//     Do note that if app has access to organization permissions, they will also be
 //     available to the access token, unless limited with [WithPermissions].
 //   - [WithPermissions] can be used to limit the scope of permissions available
 //     to the access token.
@@ -144,7 +145,7 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 		ctx = context.Background()
 	}
 
-	// Select JWT signer based on public key of the signer.
+	// Select JWT signer based on the public key of the signer.
 	switch v := signer.Public().(type) {
 	case *rsa.PublicKey:
 		if v.N.BitLen() < 2048 {
@@ -191,41 +192,40 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 	return t, nil
 }
 
-// AppID returns the github app id.
+// AppID returns the GitHub app id.
 func (t *Transport) AppID() uint64 {
 	return t.appID
 }
 
-// AppName returns the github app slug.
+// AppName returns the GitHub app slug.
 func (t *Transport) AppName() string {
 	return t.appSlug
 }
 
-// BotUsername returns the github app's username.
-// This is same as AppName, but with [bot] suffix.
+// BotUsername returns the GitHub app's username.
 func (t *Transport) BotUsername() string {
 	return t.botUsername
 }
 
-// BotCommitterEmail returns the github app's no-reply email to use for git metadata.
+// BotCommitterEmail returns the GitHub app's no-reply email to use for git metadata.
 func (t *Transport) BotCommitterEmail() string {
 	return t.botEmail
 }
 
-// InstallationID returns the github installation id. If not repositories
-// or organizations are configured, This will returns 0.
+// InstallationID returns the GitHub installation id. If not repositories
+// or organizations are configured, This will return 0.
 func (t *Transport) InstallationID() uint64 {
 	return t.installID
 }
 
 // ScopedPermissions returns permissions configured for the transport.
-// This is not the same as app permissions. This will return nil, if
+// This is not the same as app permissions. This will return nil if
 // no scoped permissions are set.
 func (t *Transport) ScopedPermissions() map[string]string {
 	return maps.Clone(t.scopes)
 }
 
-// checkApp verifies app id and signer both are valid. This also populates app's name.
+// checkApp verifies app id and signer both are valid. This also populates the app's name.
 func (t *Transport) checkApp(ctx context.Context, client *http.Client) error {
 	u := t.baseURL.JoinPath("app")
 
@@ -312,7 +312,7 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 		}
 	}
 
-	// Check is scoped permissions are supported by the app's installation.
+	// Checks is scoped permissions are supported by the app's installation.
 	// permissions on app itself are not checked as effective permissions depend
 	// on those granted by installation and scopes defined.
 	err = t.checkInstallationPermissions(getInstallationResp.Permissions)
@@ -343,7 +343,7 @@ func (t *Transport) checkInstallation(ctx context.Context, client *http.Client) 
 	return nil
 }
 
-// fetchBotUserID fetches bot's github user id.
+// fetchBotUserID fetches bot's GitHub user id.
 func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) error {
 	u := t.baseURL.JoinPath("users", fmt.Sprintf("%s[bot]", t.appSlug))
 	r, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -362,7 +362,7 @@ func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) err
 		return fmt.Errorf("failed to read response: %w", err)
 	}
 
-	// If API responds with non 200 status, try to read error message in the response.
+	// If the API responds with non 200 status, try to read the error message in the response.
 	if resp.StatusCode != http.StatusOK {
 		errResp := &api.ErrorResponse{}
 		err = json.Unmarshal(data, errResp)
@@ -408,8 +408,8 @@ func (t *Transport) checkInstallationPermissions(permissions map[string]string) 
 
 		// Installation permissions can be read/write/admin. So for scoped permissions,
 		// if admin level is requested, installation permission must also be admin.
-		// if write level is requested, installation permission on app can be write or admin.
-		// if read level is requested installation permission can be either read, write or admin.
+		// if write level is requested, installation permission on app can be 'write' or 'admin'.
+		// if read level is requested, installation permission can be either 'read', 'write' or 'admin'.
 		switch scopeLevel {
 		case "admin":
 			if installLevel != "admin" {
@@ -452,13 +452,13 @@ func (t *Transport) JWT(ctx context.Context) (JWT, error) {
 		return JWT{}, fmt.Errorf("githubapp: failed to mint JWT: %w", err)
 	}
 
-	// Sign returns BearerToken without app slug, add it.
+	// Sign returns BearerToken without the app slug, add it.
 	bearer.AppName = t.appSlug
 	t.bearer.Store(bearer)
 	return bearer, nil
 }
 
-// InstallationToken returns a new installation access token. This, always returns
+// InstallationToken returns a new installation access token. This always returns
 // a new token, thus callers can safely revoke the token whenever required.
 func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, error) {
 	if t.installID == 0 {
@@ -558,7 +558,7 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 // installationAuthzHeaderValue returns Authorization header value to be used
 // for accessing API as installation. The token is automatically refreshed
 // whenever required. This already includes prefix Bearer and can be directly
-// used with [net/http.Header.Set]. If error occurs during creating a new token
+// used with [net/http.Header.Set]. If error occurs during creating a new token,
 // header string value is empty.
 func (t *Transport) installationAuthzHeaderValue(ctx context.Context) (string, error) {
 	v := t.token.Load()
@@ -587,8 +587,8 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// Installation id is populated when WithRepositories or WithOrganization
 	// or WithInstallationID etc are used. ctxHasKeyJWT returns true when context
-	// value is set. if ctx is set or no install id is specified, transport will
-	// use JWT for authentication. Otherwise uses installation access token.
+	// value is set. if ctx is set or no installation-id is specified, transport will
+	// use JWT for authentication. Otherwise, it uses installation access token.
 	if t.installID == 0 || ctxHasKeyJWT(ctx) {
 		jwt, err := t.JWT(ctx)
 		if err != nil {

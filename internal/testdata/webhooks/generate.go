@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tprasadtp/githubapp"
+	"github.com/tprasadtp/go-githubapp"
 )
 
 var port uint

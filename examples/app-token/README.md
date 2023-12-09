@@ -4,7 +4,7 @@ An example program to obtain installation access token for an app.
 
 > **Warning**
 >
-> This is minimal _example_ and is **NOT** covered by semver compatibility guarantees.
+> This is a minimal _example_ and is **NOT** covered by semver compatibility guarantees.
 > Use [gh-app-token] for a stable CLI which also supports keys stored in KMS and various
 > PKCS formats.
 
@@ -35,7 +35,7 @@ Flags:
 
 ## Example Usage
 
-To obtain installation access token for all the repos,
+To obtain installation access token for all the repos run the following.
 
 ```
 go run github.com/tprasadtp/go-githubapp/examples/app-token@latest \
@@ -44,8 +44,7 @@ go run github.com/tprasadtp/go-githubapp/examples/app-token@latest \
     -owner <installation-owner>
 ```
 
-Should returns something like, where `ghs_xxxx`is installation token which can be used
-for API and git operations.
+Should return something like,
 
 ```
 Token        : ghs_xxxxx
@@ -55,5 +54,8 @@ Permissions  : map[contents:read issues:read metadata:read]
 user.name    : gh-integration-tests-app[bot]
 user.email   : <app-user-id>+gh-integration-tests-app[bot]@users.noreply.github.com
 ```
+
+where `ghs_xxxx`is installation token which can be used
+for API and git operations.
 
 [gh-app-token]: https://github.com/tprasadtp/gh-app-token

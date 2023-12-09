@@ -54,18 +54,18 @@ func (t JWT) LogValue() slog.Value {
 	)
 }
 
-// Checks if [JWT] is valid for at-least 60 seconds.
+// IsValid checks if [JWT] is valid for at-least 60 seconds.
 func (t JWT) IsValid() bool {
 	now := time.Now()
 	return t.Token != "" && t.IssuedAt.Before(now) && t.Exp.After(now.Add(time.Minute))
 }
 
-// contextSigner is similar to [crypto.Signer] but is context aware.
+// contextSigner is similar to [crypto.Signer] but is context-aware.
 type contextSigner interface {
 	SignContext(ctx context.Context, rand io.Reader, digest []byte, opt crypto.SignerOpts) ([]byte, error)
 }
 
-// jwtMinter mints github app JWT.
+// jwtMinter mints GitHub app JWT.
 type jwtMinter interface {
 	Mint(ctx context.Context, iss uint64, now time.Time) (JWT, error)
 }
@@ -81,7 +81,7 @@ type jwtHeader struct {
 	Alg  string `json:"alg"`
 }
 
-// JWT Payload as required by github app.
+// JWT Payload as required by GitHub app.
 type jwtPayload struct {
 	Issuer   string `json:"iss"`
 	IssuedAt int64  `json:"iat"`
@@ -156,10 +156,10 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 
 // NewJWT returns new JWT bearer token signed by the signer.
 //
-// Returned JWT is valid for at-least 5min. Ensure that your machine's clock is accurate.
+// Returned JWT is valid for at least 5min. Ensure that your machine's clock is accurate.
 //
 //   - Unlike [NewTransport], this does not validate app id and signer. This simply
-//     mints the JWT as required by github app authentication.
+//     mints the JWT as required by GitHub app authentication.
 //   - RSA keys of length less than 2048 bits are not supported.
 //   - Only RSA keys are supported. Using ECDSA, ED25519 or other keys will return error.
 func NewJWT(ctx context.Context, appid uint64, signer crypto.Signer) (JWT, error) {

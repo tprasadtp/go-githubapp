@@ -4,7 +4,6 @@ updates:
     directory: /
     labels:
       - "dependabot"
-      - "dependencies"
       - "dep/actions"
       - "luna/autoupdate"
     commit-message:
@@ -26,7 +25,6 @@ updates:
     directory: /
     labels:
       - "dependabot"
-      - "dependencies"
       - "dep/go"
       - "luna/autoupdate"
     commit-message:

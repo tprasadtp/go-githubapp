@@ -2,7 +2,7 @@
 
 > **Note**
 >
-> Testing code, scripts and configuration are _not_ covered by semver compatibility guarantees.
+> Testing code, scripts, and configuration are _not_ covered by semver compatibility guarantees.
 
 You will need go toolchain 1.21 or later and optionally `pulumi` and `gh` cli.
 
@@ -17,7 +17,7 @@ See [./internal/testdata/README.md](./internal/testdata/README.md).
 ## Integration tests
 
 `go test` will automatically run integration tests if _all_ the required environment
-variables are set and it can connect to `GO_GITHUBAPP_TEST_BASE_URL`. Integration tests
+variables are set, and it can connect to `GO_GITHUBAPP_TEST_BASE_URL`. Integration tests
 __will be skipped__ if `GO_GITHUBAPP_TEST_BASE_URL` returns 5xx errors.
 
 > **Warning**

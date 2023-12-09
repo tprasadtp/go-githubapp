@@ -31,7 +31,7 @@ type InstallationTokenRequest struct {
 	Permissions  map[string]string `json:"permissions,omitempty"`
 }
 
-// InstallationTokenRequest is returned by API for [InstallationTokenRequest].
+// InstallationTokenResponse is returned by the API for [InstallationTokenRequest].
 //
 // https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app
 type InstallationTokenResponse struct {

@@ -4,7 +4,7 @@ An example program to get readme file for a repository using [google/go-github].
 
 > **Warning**
 >
-> - This is minimal _example_ and is **NOT** covered by semver compatibility guarantees.
+> - This is a minimal _example_ and is **NOT** covered by semver compatibility guarantees.
 >   Use [gh-app-token] for a stable CLI which also supports keys stored in KMS and various
 >   PKCS formats.
 > - This example is its own module and if you make changes to `go-githubapp` it may not

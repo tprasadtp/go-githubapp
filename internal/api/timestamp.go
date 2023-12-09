@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-// Timestamp represents a time that can be un-marshalled from a JSON string
+// Timestamp represents a time that can be unmarshalled from a JSON string
 // formatted as either an RFC3339 or Unix timestamp. This is necessary for some
 // fields since the GitHub API is inconsistent in how it represents times.
 type Timestamp struct {
 	time.Time
 }
 
-func (t Timestamp) String() string {
+func (t *Timestamp) String() string {
 	return t.Time.String()
 }
 
@@ -38,6 +38,6 @@ func (t *Timestamp) UnmarshalJSON(data []byte) (err error) {
 }
 
 // Equal reports whether t and u are equal based on time.Equal.
-func (t Timestamp) Equal(u Timestamp) bool {
+func (t *Timestamp) Equal(u Timestamp) bool {
 	return t.Time.Equal(u.Time)
 }
