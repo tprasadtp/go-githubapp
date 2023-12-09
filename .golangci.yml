@@ -116,27 +116,49 @@ linters-settings:
               - google.golang.org/protobuf
             reason: "See https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules"
 
-        # Use stdlib replacements.
+        # Use stdlib or custom replacements.
         - github.com/mitchellh/go-homedir:
             reason: "Use stdlib provided os.UserHomeDir()."
+
         - github.com/hashicorp/go-multierror:
             reason: "Use stdlib provided errors.Join() available in go 1.20."
         - go.uber.org/multierr:
             reason: "Use stdlib provided errors.Join() available in go 1.20."
-        - github.com/hashicorp/go-hclog:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
-        - github.com/rs/zerolog:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
-        - github.com/sirupsen/logrus:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
-        - go.uber.org/zap:
-            reason: "Use log/slog or github.com/tprasadtp/log package."
         - github.com/pkg/errors:
             reason: "Use error wrapping available in stdlib"
 
-        # Hashicorp has changed their license to BUSL for
-        # most products. Avoid them. Libraries may not be under BUSL,
-        # but they directly or indirectly depend on BUSL licensed product.
+        - github.com/hashicorp/go-hclog:
+            reason: "Use log/slog or github.com/tprasadtp/log package."
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+        - github.com/rs/zerolog:
+            reason: "Use log/slog or github.com/tprasadtp/log package."
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+        - github.com/sirupsen/logrus:
+            reason: "Use log/slog or github.com/tprasadtp/log package."
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+        - go.uber.org/zap:
+            recommendations:
+              - "log/slog"
+              - "github.com/tprasadtp/log"
+
+        - go.uber.org/automaxprocs:
+            reason: "Does not handle fractional CPUs well and does not configure GOMEMLIMIT."
+            recommendations:
+              - "github.com/tprasadtp/go-autotune"
+        - github.com/KimMachineGun/automemlimit:
+            reason: "Does not support cgroups mounted at non standard location and does not configure GOMAXPROCS."
+            recommendations:
+              - "github.com/tprasadtp/go-autotune"
+
+        # Hashicorp has changed their license to BUSL for most products.
+        # Libraries may not be under BUSL, but they directly or indirectly
+        # depend on BUSL licensed product.
         # --------------------------------------------------------------------
 
         # Hashicorp Terraform
@@ -151,7 +173,7 @@ linters-settings:
 
         # Hashicorp Vault
         - github.com/hashicorp/vault-client-go:
-            reason: "hashicorp vault is no longer open source."
+            reason: "Hashicorp vault is no longer open source."
         - github.com/hashicorp/vault/sdk:
             reason: "Hashicorp vault is no longer open source."
         - github.com/hashicorp/vault/api:
@@ -200,17 +222,13 @@ linters-settings:
         msg: "Do not commit print builtin statements."
 
       # fmt.Prinf|Println
-      - p: ^fmt\.Print.*$
+      - p: "fmt.Print(f|ln)?(.*)"
         msg: "Do not commit print statements."
 
-      - p: ^fmt\.Fprintf\(os.Std(out|err)*$
-        msg: "Do not commit print statements."
+      # [Disabled] Too many false positives for tests.
+      # - p: time.Sleep
+      #   msg: "Avoid using time.Sleep in you code."
 
-      - p: time.Sleep
-        msg: "Avoid using time.Sleep in you code."
-
-      - p: ^log\.KV\(log\.ErrorKey*$
-        msg: "Use log.E(error) instead"
 
     # Exclude godoc examples from forbidigo checks.
     # Default: true
@@ -241,7 +259,7 @@ linters-settings:
   ireturn:
     # Only allow error, stdlib, empty and generic interfaces.
     # Default: [errors, empty, stdlib, anon]
-    allowed:
+    allow:
       - error # error interface
       - empty # interface{} or any
       - stdlib # interfaces in stdlib
@@ -267,12 +285,18 @@ linters-settings:
       - gocognit
       - gocyclo
       - lll
+      - nestif
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
     # Enable to require nolint directives to mention the specific linter being suppressed.
     # Default: false
     require-specific: true
+
+  sloglint:
+    # Enforce using attributes only (incompatible with kv-only).
+    # Default: false
+    attr-only: false
 
   tenv:
     # The option `all` will run against whole test files
@@ -335,7 +359,7 @@ linters:
     - godot # checks if comments end in a period
     - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
-    - gomodguard # allow and block lists linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations
+    - gomodguard # allow and block lists linter for direct Go module dependencies.
     - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
     - makezero # finds slice declarations with non-zero initial length
@@ -354,6 +378,7 @@ linters:
     - rowserrcheck # checks whether Err of rows is checked successfully
     - sqlclosecheck # checks that sql.Rows and sql.Stmt are closed
     - stylecheck # is a replacement for golint
+    - sloglint # lint log/slog usage
     - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
     - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
     - unconvert # removes unnecessary type conversions
@@ -367,7 +392,6 @@ linters:
     - wrapcheck # checks that errors returned from external packages are wrapped
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     - importas # enforces consistent import aliases
-    - testableexamples # checks if examples are testable (have an expected output)
     - goheader # checks for headers
     - containedctx # detects struct contained context.Context field
     - thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
@@ -398,6 +422,7 @@ linters:
     #- wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
     #- varnamelen [too noisy] # checks that the length of a variable's name matches its scope
     #- ireturn # [useless as we use functional options with interfaces a lot] accept interfaces, return concrete types (with stdlib interfaces ignored)
+    #- testableexamples # checks if examples are testable (have an expected output)
 
     ## deprecated
     #- deadcode # [deprecated, replaced by unused] finds unused code
@@ -434,8 +459,8 @@ issues:
       linters:
         - godot
 
-    # Test might add more checks to the branch and keeps them uniform
-    # accross all test cases. This also improves test code redablility.
+    # Test might add more checks to the else branch and keep them uniform
+    # across all test cases. This also improves test code readability.
     - path: '(.+)_test\.go'
       text: "elseif: can replace 'else {if cond {}}' with 'else if cond {}'"
 
@@ -467,3 +492,8 @@ issues:
       linters:
         - wrapcheck
         - forbidigo
+
+    # Disable go-header checks for example files
+    - path: 'example_(.*)\.go'
+      linters:
+        - goheader
