@@ -21,7 +21,7 @@ import (
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
 )
 
-// This tests makes live API calls to default github api endpoint.
+// This tests makes live API calls to default GitHub api endpoint.
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skipf("Skip => Integration tests in short mode")
@@ -85,7 +85,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("Invalid GO_GITHUBAPP_TEST_BASE_URL: %s", baseURLEnv)
 	}
 
-	// Check if can connect to github api endpoint.
+	// Checks if we can connect to GitHub api endpoint.
 	t.Logf("Checking connectivity to GO_GITHUBAPP_TEST_BASE_URL: %s", baseURLEnv)
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL.String(), nil)
 	if err != nil {
@@ -389,11 +389,14 @@ func TestIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s %s: request error: %s", request.Method, request.URL, err)
 			}
-			defer response.Body.Close()
 			t.Logf("%s %s: response code: %s", request.Method, request.URL, response.Status)
 
 			if response.StatusCode != http.StatusOK {
 				t.Errorf("GET %s: expected 200 response: %s", request.URL, response.Status)
+			}
+
+			if response.Body != nil {
+				response.Body.Close()
 			}
 		}
 	})

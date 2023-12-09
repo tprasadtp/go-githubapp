@@ -20,25 +20,25 @@ var (
 )
 
 const (
-	// ErrWebHookMethod is returned by [VerifyWebHookRequest] when request method
+	// ErrWebHookMethod is returned by [VerifyWebHookRequest] when a request method
 	// is not PUT.
 	ErrWebHookMethod = Error("githubapp(webhook): method not supported")
 
-	// ErrWebHookContentType is returned by [VerifyWebHookRequest] when request method
+	// ErrWebHookContentType is returned by [VerifyWebHookRequest] when a request
 	// content type is not 'application/json'.
 	ErrWebHookContentType = Error("githubapp(webhook): unsupported content type")
 
-	// ErrWebHookRequest is returned by [VerifyWebHookRequest] when request is invalid,
-	// or missing github specific webhook metadata headers (X-GitHub-Event, X-GitHub-Hook-ID etc).
+	// ErrWebHookRequest is returned by [VerifyWebHookRequest] when request is invalid
+	// or missing GitHub specific webhook metadata headers (X-GitHub-Event, X-GitHub-Hook-ID etc.).
 	ErrWebHookRequest = Error("githubapp(webhook): invalid request")
 
-	// ErrWebhookSignature is returned by [VerifyWebHookRequest] when signature does not match.
+	// ErrWebhookSignature is returned by [VerifyWebHookRequest] when the signature does not match.
 	ErrWebhookSignature = Error("githubapp(webhook): HMAC-SHA256 signature is invalid")
 )
 
 // WebHook is returned by [VerifyWebHookRequest] upon successful verification of
 // the webhook request. It contains all the webhook payloads with additional info
-// from headers to detect github app installation.
+// from headers to detect GitHub app installation.
 type WebHook struct {
 	// ID is webhook ID received in X-GitHub-Hook-ID header.
 	ID string
@@ -49,14 +49,14 @@ type WebHook struct {
 	// Payload is payload received in POST.
 	Payload []byte
 
-	// DeliveryID is unique delivery id received in X-GitHub-DeliveryID header.
+	// DeliveryID is a unique delivery id received in X-GitHub-DeliveryID header.
 	DeliveryID string
 
-	// Signature is HMAC hex digest of the request body with prefix "sha256=".
+	// Signature is HMAC hex digest of the request body with the prefix "sha256=".
 	// This is populated from X-Hub-Signature-256 header.
 	Signature string
 
-	// Github app installation ID. This can be used by WithInstallationID
+	// GitHub app installation ID. This can be used by WithInstallationID
 	// for building Transport applicable for the installation in the hook event.
 	InstallationID uint64
 
@@ -77,17 +77,17 @@ func (w *WebHook) LogValue() slog.Value {
 // VerifyWebHookRequest is a simple function to verify webhook HMAC-SHA256 signature.
 //
 // This functions assumes that headers are canonical by default and have not been
-// modified. Only HMAC-SHA256 signatures is considered for verification and SHA1
+// modified. Only HMAC-SHA256 signatures are considered for verification and SHA1
 // signature headers are ignored.
 //
-// Typically HMAC secret would be []byte, but as it may be updated via web interface,
+// Typically, HMAC secret would be []byte, but as it may be updated via web interface,
 // which can only accept strings. Returned value is only valid if error is nil.
 //
 //   - [ErrWebHookRequest] is returned when request is invalid and is missing or malformed
 //     headers like 'X-GitHub-Event', 'X-Hub-Signature-256' and more.
 //   - [ErrWebHookMethod] is returned when webhook request is not a PUT request.
 //   - [ErrWebHookContentType] is returned when content type header is not set to 'application/json'.
-//     Though github supports 'application/x-www-form-urlencoded', it is NOT supported by this library.
+//     Though GitHub supports 'application/x-www-form-urlencoded', it is NOT supported by this library.
 //   - [ErrWebhookSignature] is returned when signature does not match.
 //
 // An example HTTP handler which returns appropriate http status code is shown below.
@@ -105,14 +105,14 @@ func (w *WebHook) LogValue() slog.Value {
 //	        case errors.Is(err, githubapp.ErrWebHookMethod):
 //	            w.WriteHeader(http.StatusMethodNotAllowed)
 //	        default:
-//	            // This is non reachable code.
+//	            // This is non-reachable code.
 //	            w.WriteHeader(http.StatusNotImplemented)
 //	        }
 //	        _, _ = w.Write([]byte(err.Error()))
 //	        return
 //	    }
 //
-//	    // Do something with webhook for example, put it in SQS or PubSub.
+//	    // Do something with webhook, for example, put it in SQS or PubSub.
 //	    err = doSomething(r.Context(), webhook)
 //	    if err != nil {
 //	        w.WriteHeader(http.StatusInternalServerError)
@@ -167,7 +167,7 @@ func VerifyWebHookRequest(secret string, req *http.Request) (WebHook, error) {
 		return WebHook{}, fmt.Errorf("%w: invalid %s header", ErrWebHookRequest, installationTargetIDHeader)
 	}
 
-	// Ensure X-Hub-Signature-256 header exists and has valid format.
+	// Ensure X-Hub-Signature-256 header exists and has a valid format.
 	signature := req.Header.Get(signatureSHA256Header)
 	if !strings.HasPrefix(signature, "sha256=") {
 		return WebHook{}, fmt.Errorf("%w: missing prefix sha256= from %s header",

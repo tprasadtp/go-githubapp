@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
-// An example CLI which can fetch installation tokens for a github app.
+// An example CLI which can fetch installation tokens for a GitHub app.
 package main // import "github.com/tprasadtp/go-githubapp/examples/app-token"
 
 import (
@@ -70,7 +70,7 @@ func main() {
 		log.Fatalf("Invalid private key: %s", err)
 	}
 
-	// Try to parse key as private key.
+	// Try to parse key as a private key.
 	signer, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		log.Fatalf("Invalid private key: %s", err)

@@ -34,7 +34,7 @@ type InstallationToken struct {
 	InstallationID uint64 `json:"installation_id,omitempty" yaml:"installationID,omitempty"`
 
 	// GitHub API endpoint. This is also used for token revocation.
-	// If omitted assumes default value of "https://api.githhub.com/".
+	// If omitted, assume the default value of "https://api.githhub.com/".
 	Server string `json:"server,omitempty" yaml:"server,omitempty"`
 
 	// Token exp time.
@@ -44,7 +44,7 @@ type InstallationToken struct {
 	Owner string `json:"owner,omitempty" yaml:"owner,omitempty"`
 
 	// Repositories which can be accessed with the token. This may be empty
-	// if scoped token is not requested. In such cases, token will have access to all
+	//  if a scoped token is not requested. In such cases, token will have access to all
 	// repositories accessible by the installation.
 	Repositories []string `json:"repositories,omitempty" yaml:"repositories,omitempty"`
 
@@ -74,7 +74,7 @@ func (t *InstallationToken) LogValue() slog.Value {
 	)
 }
 
-// Checks if [InstallationToken] is valid for at-least 60 seconds.
+// IsValid checks if [InstallationToken] is valid for at-least 60 seconds.
 func (t *InstallationToken) IsValid() bool {
 	return t.Token != "" && t.Exp.After(time.Now().Add(time.Minute))
 }
@@ -84,7 +84,7 @@ func (t *InstallationToken) Revoke(ctx context.Context) error {
 	return t.revoke(ctx, nil)
 }
 
-// revoke is internal version of Revoke which supports custom round tripper
+// revoke is an internal version of Revoke, which supports custom round tripper
 // for testing and customization.
 func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) error {
 	if ctx == nil {
@@ -116,8 +116,8 @@ func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) er
 	}
 
 	// NewRequestWithContext returns an error on invalid methods and nil context,
-	// and invalid URL. All of which are non reachable code-paths. But we check for
-	// error anyways as it is an implementation detail.
+	// and invalid URL. All of which are non-reachable code-paths. But we check for
+	// error anyway as it is an implementation detail.
 	r, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
 	if err != nil {
 		return fmt.Errorf("githubapp: failed to revoke token - failed to build request: %w", err)

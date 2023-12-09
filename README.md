@@ -24,30 +24,33 @@ It is user's responsibility to set appropriate headers as required.
 ```go
 package main
 
-import "github.com/tprasadtp/go-githubapp"
+import (
+	"net/http"
+	"github.com/tprasadtp/go-githubapp"
+)
 
 func main() {
 	rt, err := githubapp.NewTransport(ctx, appID, signer,
         githubapp.WithOwner("username"),
         githubapp.WithRepositories("repo-one", "repo-two"),
-        githubapp.WithPermissions("contents:read")
+        githubapp.WithPermissions("contents:read"),
     )
 
     client := &http.Client{
         Transport: rt,
     }
 
-    resp, err := client.Get("/repos/<username>/<repo>/readme")
+    response, err := client.Get("/repos/<username>/<repo>/readme")
     // Handle error
     if err != nil {
         panic(err)
     }
 
-    doStuff....
+    // Process Response from API....
 }
 ```
 
-For full working programs see examples directory.
+For full working programs, see examples directory.
 
 ### AppID
 
@@ -55,18 +58,18 @@ App ID can be found in
 
 Settings -> Developer -> settings -> GitHub App -> About item.
 
-Be sure to select correct organization if you are a member of multiple organizations.
+Be sure to select the correct organization if you are a member of multiple organizations.
 
 ### Private key
 
 This library delegates JWT signing to type implementing [crypto.Signer] interface.
-Thus it _may_ be backed by KMS/TPM or other secure key store. Optionally
+Thus, it _may_ be backed by KMS/TPM or other secure key store. Optionally
 [github.com/tprasadtp/cryptokms] can be used.
 
 ### Installation ID
 
 Typically extracted from webhook request headers. If using [VerifyWebHookRequest],
-returned [WebHook] includes `InstallationID`. This is not required if owner is already
+returned [WebHook] includes `InstallationID`. This is not required if an owner is already
 specified.
 
 ### Limit Permissions of Tokens
@@ -76,10 +79,10 @@ specified.
 Please check with GitHub API documentation on supported scopes. Requested
 permissions cannot permissions existing on the _installation_.
 
-### Limit Scope of Tokens to set of Repositories
+### Limit the Scope of Tokens to a set of Repositories
 
-[WithRepositories] can be used to limit scope of created access tokens to list of
-repositories specified. Repositories MUST belong to a single installation i.e MUST have
+[WithRepositories] can be used to limit the scope of created access tokens to the list of
+repositories specified. Repositories MUST belong to a single installation i.e., MUST have
 a single owner. This accepts repositories in `{owner}/{repo}` format or just name of the
 repository. If only name is specified, then it **MUST** be used with [WithOwner] or
 [WithInstallationID].
