@@ -48,7 +48,7 @@ func Options(options ...Option) Option {
 
 // Option is option to apply for [Transport].
 type Option interface {
-	apply(*Transport) error
+	apply(t *Transport) error
 }
 
 // funcOption wraps a function that is applied to the Transport
