@@ -8,16 +8,6 @@ HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for Web
 [![license](https://img.shields.io/github/license/tprasadtp/go-githubapp)](https://github.com/tprasadtp/go-githubapp/blob/master/LICENSE)
 [![latest-version](https://img.shields.io/github/v/tag/tprasadtp/go-githubapp?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-githubapp/releases)
 
-> **Note**
->
-> For API documentation and examples,
-> See https://pkg.go.dev/github.com/tprasadtp/go-githubapp.
-
-- This library is designed to provide automatic authentication for [google/go-github], [github.com/shurcooL/githubv4] or your own HTTP client.
-- [Transport] implements [http.RoundTripper] which can authenticate transparently.
-It _will_ override `Authorization` header. None of the other headers are modified. Thus,
-It is user's responsibility to set appropriate headers as required.
-
 ## RoundTripper Example
 
 ```go
@@ -49,7 +39,14 @@ func main() {
 }
 ```
 
-For full working programs, see examples directory.
+## API Reference
+
+- This library is designed to provide automatic authentication for [google/go-github], [github.com/shurcooL/githubv4] or your own HTTP client.
+- [Transport] implements [http.RoundTripper] which can authenticate transparently.
+It _will_ override `Authorization` header. None of the other headers are modified. Thus,
+It is user's responsibility to set appropriate headers as required.
+
+See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-githubapp) for more info and examples.
 
 ### AppID
 
