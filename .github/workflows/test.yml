@@ -42,6 +42,4 @@ jobs:
         run: |
           go work init .
           go work use .
-          go work use ./examples/go-github-readme
           go run github.com/tprasadtp/go-githubapp/examples/app-token@latest -help
-          go run github.com/tprasadtp/go-githubapp/examples/go-github-readme@latest -help

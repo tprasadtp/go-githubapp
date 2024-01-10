@@ -11,28 +11,35 @@ HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for Web
 ## RoundTripper Example
 
 ```go
+// SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
-	"net/http"
-	"github.com/tprasadtp/go-githubapp"
+    "log"
+    "net/http"
+    "github.com/tprasadtp/go-githubapp"
 )
 
 func main() {
 	rt, err := githubapp.NewTransport(ctx, appID, signer,
         githubapp.WithOwner("username"),
-        githubapp.WithRepositories("repo-one", "repo-two"),
+        githubapp.WithRepositories("repository"),
         githubapp.WithPermissions("contents:read"),
     )
 
+    // Build HTTP client with custom round tripper.
     client := &http.Client{
         Transport: rt,
     }
 
-    response, err := client.Get("/repos/<username>/<repo>/readme")
+    // Try to fetch README for the repository.
+    response, err := client.Get("/repos/<username>/<repository>/readme")
+
     // Handle error
     if err != nil {
-        panic(err)
+        log.Fatal(err)
     }
 
     // Process Response from API....

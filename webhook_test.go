@@ -281,7 +281,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 	}
 }
 
-func TestVerifyWebHookSignature_Replay(t *testing.T) {
+func TestVerifyWebHookSignature_WithReplayers(t *testing.T) {
 	dir := filepath.Join("internal", "testdata", "webhooks")
 	items, le := os.ReadDir(dir)
 	if le != nil {
