@@ -335,6 +335,40 @@ func TestWithPermissions(t *testing.T) {
 			name:  "invalid-level",
 			input: []string{"issues:root"},
 		},
+		{
+			name:  "with-sep-equal",
+			input: []string{"issues=write"},
+			ok:    true,
+			expect: map[string]string{
+				"issues": "write",
+			},
+		},
+		{
+			name:  "with-sep-colon",
+			input: []string{"issues:write"},
+			ok:    true,
+			expect: map[string]string{
+				"issues": "write",
+			},
+		},
+		{
+			name:  "invalid-and-valid",
+			input: []string{"issues=write", "contents:foo"},
+		},
+		{
+			name:  "with-sep-mixed",
+			input: []string{"issues=write", "contents:read"},
+			ok:    true,
+			expect: map[string]string{
+				"issues":   "write",
+				"contents": "read",
+			},
+		},
+		// none scope is not allowed.
+		{
+			name:  "with-scope-none",
+			input: []string{"contents:none"},
+		},
 	}
 
 	for _, tc := range tt {
