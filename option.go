@@ -65,7 +65,7 @@ func (opt *funcOption) apply(t *Transport) error {
 var (
 	repoNameRegExp  = regexp.MustCompile("^(((.)[a-z-0-9-.]+)|([a-z0-9-]([a-z0-9-.]+)?))$")
 	userNameRegExp  = regexp.MustCompile("^([a-z0-9]([a-z0-9-]+)?)$")
-	permissionRegEx = regexp.MustCompile("^[a-z]([a-z_]+[a-z])?[:](read|write|admin)$")
+	permissionRegEx = regexp.MustCompile("^[a-z]([a-z_]+[a-z])?[:|=](read|write|admin)$")
 )
 
 // WithEndpoint configures [Transport] to use custom REST API(v3) endpoint.
@@ -73,7 +73,7 @@ var (
 // installation access tokens. This MUST be REST(v3) endpoint even though
 // client might be using GitHub GraphQL API.
 //
-// When not specified or empty, "https://api.githhub.com/" is used.
+// When not specified or empty, "https://api.github.com/" is used.
 func WithEndpoint(endpoint string) Option {
 	if endpoint == "" {
 		return nil
@@ -226,9 +226,13 @@ func WithInstallationID(id uint64) Option {
 // WithPermissions configures permission scopes. This is useful when app has
 // broader set of permissions a scoped access token is required.
 //
-// Permissions MUST be specified in <scope>:<access> format.
+// Permissions MUST be specified in <scope>:<access> or  <scope>=<access> format.
 // Where scope is permission scope like "issues" and access can be one of
 // "read", "write" or "admin".
+//
+// For example to request permissions to write issues and pull request can be specified as,
+//
+//	githubapp.WithPermissions("issues:write", "pull_requests:write")
 func WithPermissions(permissions ...string) Option {
 	if len(permissions) == 0 {
 		return nil
@@ -240,6 +244,9 @@ func WithPermissions(permissions ...string) Option {
 			for _, item := range permissions {
 				item = strings.ToLower(item)
 				if permissionRegEx.MatchString(item) {
+					// Replace = with :
+					item = strings.ReplaceAll(item, "=", ":")
+
 					// Ignore error checks as regex already validates
 					// that permissions are in format <scope>:<level> format.
 					scope, level, _ := strings.Cut(item, ":")
