@@ -16,7 +16,7 @@ Tool to obtain installation access token or JWT for a Github App
 This is a simple example CLI and is not covered by semver compatibility guarantees.
 Use https://github.com/tprasadtp/gh-app-token if you need a CLI.
 
-Usage: go run github.com/tprasadtp/go-githubapp/example@latest
+Usage: go run github.com/tprasadtp/go-githubapp/examples/app-token@latest
 
 Flags:
   -app-id uint
