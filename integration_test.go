@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -24,7 +25,7 @@ import (
 // This tests makes live API calls to default GitHub api endpoint.
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
-		t.Skipf("Skip => Integration tests in short mode")
+		t.Skipf("Skip => Integration tests")
 	}
 
 	// Try to read private key from env variable or file defined in env variable.
@@ -73,8 +74,16 @@ func TestIntegration(t *testing.T) {
 		t.Skipf("Skip => GO_GITHUBAPP_TEST_OWNER is not defined")
 	}
 
-	// Check if GO_GITHUBAPP_TEST_BASE_URL is set.
-	baseURLEnv := os.Getenv("GO_GITHUBAPP_TEST_BASE_URL")
+	// Check if GO_GITHUBAPP_TEST_API_URL is set.
+	baseURLEnv := os.Getenv("GO_GITHUBAPP_TEST_API_URL")
+
+	// Fallback to GH_HOST if GO_GITHUBAPP_TEST_API_URL is not set.
+	if baseURLEnv == "" {
+		baseURLEnv = os.Getenv("GH_HOST")
+	}
+
+	// If both GH_HOST and GO_GITHUBAPP_TEST_API_URL are unset,
+	// use default endpoint.
 	if baseURLEnv == "" {
 		baseURLEnv = api.DefaultEndpoint
 	}
@@ -82,30 +91,61 @@ func TestIntegration(t *testing.T) {
 	// Verify endpoint URL is valid.
 	baseURL, err := url.Parse(baseURLEnv)
 	if err != nil {
-		t.Fatalf("Invalid GO_GITHUBAPP_TEST_BASE_URL: %s", baseURLEnv)
+		t.Fatalf("Invalid REST API endpoint URL: %s", baseURLEnv)
 	}
 
 	// Checks if we can connect to GitHub api endpoint.
-	t.Logf("Checking connectivity to GO_GITHUBAPP_TEST_BASE_URL: %s", baseURLEnv)
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL.String(), nil)
+	t.Logf("Checking connectivity to REST API endpoint URL: %s", baseURLEnv)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, baseURL.String(), nil)
 	if err != nil {
 		t.Fatalf("Error building request: %s", err)
 	}
 
+	// Add User-Agent Header.
+	req.Header.Add(api.UAHeader, api.UAHeaderValue)
+
+	// Get token from env variable.
+	//
+	// API endpoint is usually rate limited. On CI/CD systems using a NAT gateway
+	// or a proxy, this can lead to errors due to GitHub servers seeing same IP address.
+	// To avoid it authenticate the requests. This token need not have any permissions,
+	// it just needs to be a valid token.
+	var githubTokenEnv string
+
+	// Try to lookup GO_GITHUBAPP_TEST_TOKEN
+	githubTokenEnv = os.Getenv("GO_GITHUBAPP_TEST_TOKEN")
+
+	// Try to lookup GITHUB_ENTERPRISE_TOKEN, if baseURL is not default.
+	if githubTokenEnv == "" {
+		if baseURL.Host != "api.github.com" {
+			githubTokenEnv = os.Getenv("GITHUB_ENTERPRISE_TOKEN")
+		}
+	}
+
+	// Fallback to GITHUB_TOKEN env variable.
+	if githubTokenEnv == "" {
+		githubTokenEnv = os.Getenv("GITHUB_TOKEN")
+	}
+
+	if githubTokenEnv != "" {
+		t.Logf("Using provided token")
+		req.Header.Add(api.AuthzHeader, fmt.Sprintf("Bearer: %s", githubTokenEnv))
+	}
+
 	baseURLResponse, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Skipf("Skip => GO_GITHUBAPP_TEST_BASE_URL(%s) is not reachable: %s", baseURLEnv, err)
+		t.Skipf("Skip => REST API endpoint(%s) is not reachable: %s", baseURLEnv, err)
 	}
 	defer baseURLResponse.Body.Close()
 
-	t.Logf("Successfully connected to GO_GITHUBAPP_TEST_BASE_URL: %s", baseURLEnv)
+	t.Logf("Successfully connected to REST API endpoint: %s", baseURLEnv)
 	switch baseURLResponse.StatusCode {
 	case http.StatusOK, http.StatusNoContent:
 	case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable:
-		t.Skipf("Skip => GO_GITHUBAPP_TEST_BASE_URL(%s) returned server error: %s",
+		t.Skipf("Skip => REST API endpoint(%s) returned server error: %s",
 			baseURLEnv, baseURLResponse.Status)
 	default:
-		t.Fatalf("Invalid response from GO_GITHUBAPP_TEST_BASE_URL(%s): %s",
+		t.Fatalf("Invalid response from REST API endpoint(%s): %s",
 			baseURLEnv, baseURLResponse.Status)
 	}
 

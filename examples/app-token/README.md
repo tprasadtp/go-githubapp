@@ -2,7 +2,7 @@
 
 An example program to obtain installation access token for an app.
 
-> **Warning**
+> [!IMPORTANT]
 >
 > This is a minimal _example_ and is **NOT** covered by semver compatibility guarantees.
 > Use [gh-app-token] for a stable CLI which also supports keys stored in KMS and various

@@ -17,6 +17,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
 var _ io.Reader = (*errReader)(nil)
@@ -46,15 +48,15 @@ func TestVerifyWebHookSignature(t *testing.T) {
 	const secret = "It's a Secret to Everybody"
 	const payload = "Hello, World!"
 	var headers = make(http.Header) // must be cloned between tests!
-	headers.Set(deliveryHeader, "72d3162e-cc78-11e3-81ab-4c9367dc0958")
-	headers.Set(signatureSHA256Header, "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
+	headers.Set(api.DeliveryHeader, "72d3162e-cc78-11e3-81ab-4c9367dc0958")
+	headers.Set(api.SignatureSHA256Header, "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
 	headers.Set("X-Hub-Signature", "sha1=01dc10d0c83e72ed246219cdd91669667fe2ca59")
-	headers.Set("User-Agent", "GitHub-Hookshot/044aadd")
-	headers.Set("Content-Type", "application/json")
-	headers.Set(eventHeader, "issues")
-	headers.Set(hookIDHeader, "292430182")
-	headers.Set(installationTargetIDHeader, "79929171")
-	headers.Set(installationTargetTypeHeader, "repository")
+	headers.Set(api.UAHeader, "GitHub-Hookshot/044aadd")
+	headers.Set(api.ContentTypeHeader, "application/json")
+	headers.Set(api.EventHeader, "issues")
+	headers.Set(api.HookIDHeader, "292430182")
+	headers.Set(api.InstallationTargetIDHeader, "79929171")
+	headers.Set(api.InstallationTargetTypeHeader, "repository")
 
 	tt := []testCase{
 		{
@@ -115,7 +117,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 					bytes.NewBufferString(payload),
 				)
 				r.Header = maps.Clone(headers)
-				r.Header.Del(contentTypeHeader)
+				r.Header.Del(api.ContentTypeHeader)
 				return r
 			}(),
 		},
@@ -130,7 +132,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 					bytes.NewBufferString(payload),
 				)
 				r.Header = maps.Clone(headers)
-				r.Header.Set(contentTypeHeader, "application/x-www-form-urlencoded")
+				r.Header.Set(api.ContentTypeHeader, "application/x-www-form-urlencoded")
 				return r
 			}(),
 		},
@@ -145,7 +147,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 					bytes.NewBufferString(payload),
 				)
 				r.Header = maps.Clone(headers)
-				r.Header.Del(signatureSHA256Header)
+				r.Header.Del(api.SignatureSHA256Header)
 				return r
 			}(),
 		},
@@ -161,7 +163,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 				)
 				r.Header = maps.Clone(headers)
 				r.Header.Set(
-					signatureSHA256Header,
+					api.SignatureSHA256Header,
 					"757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
 				return r
 			}(),
@@ -178,7 +180,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 				)
 				r.Header = maps.Clone(headers)
 				r.Header.Set(
-					signatureSHA256Header,
+					api.SignatureSHA256Header,
 					"sha1=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
 				return r
 			}(),
@@ -195,7 +197,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 				)
 				r.Header = maps.Clone(headers)
 				r.Header.Set(
-					signatureSHA256Header,
+					api.SignatureSHA256Header,
 					"sha256=?57107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
 				return r
 			}(),
@@ -225,7 +227,7 @@ func TestVerifyWebHookSignature(t *testing.T) {
 					bytes.NewBufferString(payload),
 				)
 				r.Header = maps.Clone(headers)
-				r.Header.Set(installationTargetIDHeader, "abcd")
+				r.Header.Set(api.InstallationTargetIDHeader, "abcd")
 				return r
 			}(),
 		},
@@ -334,15 +336,15 @@ func BenchmarkVerifyWebHookSignature(b *testing.B) {
 	const secret = "It's a Secret to Everybody"
 	const payload = "Hello, World!"
 	var headers = make(http.Header)
-	headers.Set(deliveryHeader, "72d3162e-cc78-11e3-81ab-4c9367dc0958")
-	headers.Set(signatureSHA256Header, "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
+	headers.Set(api.DeliveryHeader, "72d3162e-cc78-11e3-81ab-4c9367dc0958")
+	headers.Set(api.SignatureSHA256Header, "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17")
 	headers.Set("X-Hub-Signature", "sha1=01dc10d0c83e72ed246219cdd91669667fe2ca59")
-	headers.Set("User-Agent", "GitHub-Hookshot/044aadd")
-	headers.Set("Content-Type", "application/json")
-	headers.Set(eventHeader, "issues")
-	headers.Set(hookIDHeader, "292430182")
-	headers.Set(installationTargetIDHeader, "79929171")
-	headers.Set(installationTargetTypeHeader, "repository")
+	headers.Set(api.UAHeader, "GitHub-Hookshot/044aadd")
+	headers.Set(api.ContentTypeHeader, "application/json")
+	headers.Set(api.EventHeader, "issues")
+	headers.Set(api.HookIDHeader, "292430182")
+	headers.Set(api.InstallationTargetIDHeader, "79929171")
+	headers.Set(api.InstallationTargetTypeHeader, "repository")
 
 	valid := httptest.NewRequest(http.MethodPost,
 		"https://webhooks.go-githubapp.golang.test",
@@ -359,7 +361,7 @@ func BenchmarkVerifyWebHookSignature(b *testing.B) {
 	var webhook WebHook
 	var err error
 
-	b.Run("Valid-Signature", func(b *testing.B) {
+	b.Run("Valid", func(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -367,7 +369,7 @@ func BenchmarkVerifyWebHookSignature(b *testing.B) {
 		}
 	})
 
-	b.Run("Invalid-Signature", func(b *testing.B) {
+	b.Run("Invalid", func(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {

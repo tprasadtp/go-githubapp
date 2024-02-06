@@ -5,6 +5,7 @@ HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for Web
 [![go-reference](https://img.shields.io/badge/go-reference-00758D?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
 [![test](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml)
+[![release](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml)
 [![license](https://img.shields.io/github/license/tprasadtp/go-githubapp)](https://github.com/tprasadtp/go-githubapp/blob/master/LICENSE)
 [![latest-version](https://img.shields.io/github/v/tag/tprasadtp/go-githubapp?color=7f50a6&label=release&logo=semver&sort=semver)](https://github.com/tprasadtp/go-githubapp/releases)
 
@@ -57,13 +58,13 @@ See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-githubapp) for more in
 
 ### AppID
 
-App ID can be found in
+App ID can be found at
 
 Settings -> Developer -> settings -> GitHub App -> About item.
 
 Be sure to select the correct organization if you are a member of multiple organizations.
 
-### Private key
+### Private Key
 
 This library delegates JWT signing to type implementing [crypto.Signer] interface.
 Thus, it _may_ be backed by KMS/TPM or other secure key store. Optionally

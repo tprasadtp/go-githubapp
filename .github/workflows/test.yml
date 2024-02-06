@@ -1,8 +1,18 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: test
 on:
   push:
+    branches:
+      - "**"
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -10,13 +20,7 @@ jobs:
       matrix:
         go:
           - stable
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,22 +28,48 @@ jobs:
       - name: Setup Go ${{ matrix.go }}
         uses: actions/setup-go@v5
         with:
-          check-latest: true
-          cache: true
           go-version: ${{ matrix.go }}
 
-      - name: Go version
-        run: go version
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
 
-      - name: Run tests
-        run: go test -v -cover -covermode=atomic -coverprofile coverage.out  ./...
+      - name: Test
+        run: task test
         env:
+          GO_GITHUBAPP_TEST_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GO_GITHUBAPP_TEST_OWNER: ${{ vars.GO_GITHUBAPP_TEST_OWNER }}
+          GO_GITHUBAPP_TEST_API_URL: ${{ github.api_url }}
           GO_GITHUBAPP_TEST_APP_ID: ${{ vars.GO_GITHUBAPP_TEST_APP_ID }}
           GO_GITHUBAPP_TEST_APP_PRIVATE_KEY: ${{ secrets.GO_GITHUBAPP_TEST_APP_PRIVATE_KEY }}
 
-      - name: Ensure examples work (workspaces)
-        run: |
-          go work init .
-          go work use .
-          go run github.com/tprasadtp/go-githubapp/examples/app-token@latest -help
+      - name: Coverage Create Profile
+        # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+        #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+        #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+        run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
+
+      - name: Coverage View Profile
+        # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+        #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+        #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+        run: go tool cover -func .gocover/coverage.out
+
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: GoReleaser Snapshot
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: release --clean --fail-fast --snapshot

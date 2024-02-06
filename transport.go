@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -28,21 +29,21 @@ var (
 	_ http.RoundTripper = (*Transport)(nil)
 )
 
-// keyJWT is context key to indicate round tripper needs to use jwt
+// ctxJWTKey is context key to indicate round tripper needs to use jwt
 // instead of installation token.
-type keyJWT struct{}
+type ctxJWTKey struct{}
 
-// ctxWithJWTKey adds jwtKey to context to indicate round tripper should use JWT.
+// ctxWithJWTKey adds ctxJWTKey to context to indicate round tripper should use JWT.
 // This is required because refreshing [InstallationToken] or fetching app metadata
 // requires using JWT.
 func ctxWithJWTKey(ctx context.Context) context.Context {
-	return context.WithValue(ctx, keyJWT{}, struct{}{})
+	return context.WithValue(ctx, ctxJWTKey{}, struct{}{})
 }
 
-// ctxHasKeyJWT checks if context has key keyJWT. This is used to re-use the
+// ctxHasJWTKey checks if context has key "keyJWT" This is used to re-use the
 // same transport for token renewals.
-func ctxHasKeyJWT(ctx context.Context) bool {
-	return ctx.Value(keyJWT{}) != nil
+func ctxHasJWTKey(ctx context.Context) bool {
+	return ctx.Value(ctxJWTKey{}) != nil
 }
 
 // Transport provides a [http.RoundTripper] by wrapping an existing
@@ -59,10 +60,11 @@ type Transport struct {
 	installID   uint64            // installation id
 	owner       string            // owner of repositories
 	repos       []string          // repository names
+	ua          string            // user agent
 	next        http.RoundTripper // next round tripper
 	baseURL     *url.URL          // REST API v3 base URL
 	minter      jwtMinter         // jwt minter
-	bearer      atomic.Value      // bearer token
+	jwt         atomic.Value      // jwt token
 	token       atomic.Value      // installation token
 	botUsername string            // bot user.name
 	botEmail    string            // bot user.email
@@ -133,6 +135,11 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 	// If there is no existing round tripper, use DefaultTransport.
 	if t.next == nil {
 		t.next = http.DefaultTransport
+	}
+
+	// If there is not custom user agent specified, use default.
+	if t.ua == "" {
+		t.ua = api.UAHeaderValue
 	}
 
 	// If endpoint is not configured, use default endpoint.
@@ -440,7 +447,7 @@ func (t *Transport) checkInstallationPermissions(permissions map[string]string) 
 
 // JWT returns already existing JWT bearer token or mints a new one.
 func (t *Transport) JWT(ctx context.Context) (JWT, error) {
-	v := t.bearer.Load()
+	v := t.jwt.Load()
 	if v != nil {
 		if bearer, _ := v.(JWT); bearer.IsValid() {
 			return bearer, nil
@@ -454,7 +461,7 @@ func (t *Transport) JWT(ctx context.Context) (JWT, error) {
 
 	// Sign returns BearerToken without the app slug, add it.
 	bearer.AppName = t.appSlug
-	t.bearer.Store(bearer)
+	t.jwt.Store(bearer)
 	return bearer, nil
 }
 
@@ -532,6 +539,7 @@ func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, e
 		AppID:          t.appID,
 		AppName:        t.appSlug,
 		InstallationID: t.installID,
+		UserAgent:      t.ua,
 		Token:          tokenResp.Token,
 		Exp:            tokenResp.Exp.Time,
 		Owner:          t.owner,
@@ -575,32 +583,48 @@ func (t *Transport) installationAuthzHeaderValue(ctx context.Context) (string, e
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req == nil {
+		return nil, fmt.Errorf("githubapp(RoundTrip): request is nil")
+	}
+
+	if !strings.EqualFold(t.baseURL.Host, req.URL.Host) {
+		return nil,
+			fmt.Errorf("githubapp(RoundTrip): Host for round tripper(%s) does not match host for request(%s)",
+				t.baseURL.Host, req.URL.Host)
+	}
+
 	ctx := req.Context()
 	clone := cloneRequest(req) // RoundTripper should not modify request
 
-	// ctxHasKeyJWT is only set for token renewals, ignore 'Accept' and
-	// 'X-GitHub-Api-Version' headers if any and always use library defaults.
-	if ctxHasKeyJWT(ctx) {
-		clone.Header.Set(acceptHeader, acceptHeaderValue)
-		clone.Header.Set(apiVersionHeader, apiVersionHeaderValue)
+	// ctxHasKeyJWT is only set for token renewals.
+	if ctxHasJWTKey(ctx) {
+		// Always ignore 'Accept' and 'X-GitHub-Api-Version' headers if
+		// any and always use library defaults.
+		clone.Header.Set(api.AcceptHeader, api.AcceptHeaderValue)
+		clone.Header.Set(api.VersionHeader, api.VersionHeaderValue)
+
+		// Use fallback User Agent header if it is missing.
+		if clone.Header.Get(api.UAHeader) == "" {
+			clone.Header.Set(api.UAHeader, t.ua)
+		}
 	}
 
 	// Installation id is populated when WithRepositories or WithOrganization
 	// or WithInstallationID etc are used. ctxHasKeyJWT returns true when context
 	// value is set. if ctx is set or no installation-id is specified, transport will
 	// use JWT for authentication. Otherwise, it uses installation access token.
-	if t.installID == 0 || ctxHasKeyJWT(ctx) {
+	if t.installID == 0 || ctxHasJWTKey(ctx) {
 		jwt, err := t.JWT(ctx)
 		if err != nil {
 			return nil, err
 		}
-		clone.Header.Set(authzHeader, "Bearer "+jwt.Token)
+		clone.Header.Set(api.AuthzHeader, api.AuthzHeaderValue(jwt.Token))
 	} else {
 		authzHeaderValue, err := t.installationAuthzHeaderValue(ctx)
 		if err != nil {
 			return nil, err
 		}
-		clone.Header.Set(authzHeader, authzHeaderValue)
+		clone.Header.Set(api.AuthzHeader, authzHeaderValue)
 	}
 
 	//nolint:wrapcheck // don't wrap errors returned by underlying round-tripper.

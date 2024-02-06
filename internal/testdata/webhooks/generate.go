@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
+// Simple CLI tool to dump received GitHub webhook requests to directory.
 package main
 
 import (
@@ -70,7 +71,7 @@ func main() {
 	// Starts a go routine which handles server shutdown.
 	wg.Add(1)
 	go func() {
-		var serr error
+		var err error
 		defer wg.Done()
 		//nolint:gosimple // https://github.com/dominikh/go-tools/issues/503
 		for {
@@ -78,9 +79,9 @@ func main() {
 			// on cancel, stops server and return.
 			case <-ctx.Done():
 				log.Printf("Stopping server - %s", srv.Addr)
-				serr = srv.Shutdown(ctx)
-				if serr != nil && !errors.Is(serr, http.ErrServerClosed) {
-					slog.Error("failed to shutdown server: %s", serr)
+				err = srv.Shutdown(ctx)
+				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+					slog.Error("Failed to shutdown server", slog.Any("err", err))
 				}
 				return
 			}
@@ -88,16 +89,16 @@ func main() {
 	}()
 
 	// Start server.
-	slog.Info("Starting server", "addr", srv.Addr)
+	slog.Info("Starting server", slog.String("addr", srv.Addr))
 	err = srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("Failed to start the server", "err", err)
+		slog.Error("Failed to start the server", slog.Any("err", err))
 		wg.Wait()
 		os.Exit(1)
 	}
 
 	wg.Wait()
-	slog.Info("Server stopped", "addr", srv.Addr)
+	slog.Info("Server stopped", slog.String("addr", srv.Addr))
 }
 
 func Mux() *http.ServeMux {
@@ -110,13 +111,13 @@ func Mux() *http.ServeMux {
 		id := r.Header.Get("X-GitHub-Delivery")
 		if id == "" {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte("missing header X-GitHub-Delivery"))
+			_, _ = w.Write([]byte("Missing header: X-GitHub-Delivery"))
 			return
 		}
 
 		data, err := httputil.DumpRequest(r, true)
 		if err != nil {
-			slog.Error("failed to dump request", "err", err)
+			slog.Error("Failed to dump request", slog.Any("err", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(err.Error()))
 			return
@@ -124,7 +125,7 @@ func Mux() *http.ServeMux {
 
 		webhook, err := githubapp.VerifyWebHookRequest(secret, r)
 		if err != nil {
-			slog.Error("failed to verify webhook", "err", err)
+			slog.Error("Failed to verify webhook", slog.Any("err", err))
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(err.Error()))
 			return
@@ -135,7 +136,7 @@ func Mux() *http.ServeMux {
 		// create a file to dump raw request.
 		file, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s.replay", id)))
 		if err != nil {
-			slog.Error("failed to create file", "err", err)
+			slog.Error("Failed to create file", slog.Any("err", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(err.Error()))
 			return
@@ -144,7 +145,7 @@ func Mux() *http.ServeMux {
 
 		_, err = file.Write(data)
 		if err != nil {
-			slog.Error("failed to write to file", "err", err)
+			slog.Error("Failed to write to file", slog.Any("err", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(err.Error()))
 			return

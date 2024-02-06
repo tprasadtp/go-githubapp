@@ -79,17 +79,17 @@ func transportCmp(t *testing.T, a, b *Transport) bool {
 func TestCtxJWT(t *testing.T) {
 	ctx := context.Background()
 
-	if ctxHasKeyJWT(ctx) {
+	if ctxHasJWTKey(ctx) {
 		t.Errorf("context.Background() should not have a value")
 	}
 
 	clone := ctxWithJWTKey(ctx)
-	value := clone.Value(keyJWT{})
+	value := clone.Value(ctxJWTKey{})
 	if value == nil {
 		t.Errorf("ctxWithJWTKey(ctx).Value(keyJWT{}) should return non nil value")
 	}
 
-	if !ctxHasKeyJWT(clone) {
+	if !ctxHasJWTKey(clone) {
 		t.Errorf("ctxHasKeyJWT(ctxWithJWTKey(ctx)) should return true")
 	}
 }
@@ -367,7 +367,7 @@ func TestTransport_JWT(t *testing.T) {
 			t.Errorf("unexpected error minting fresh jwt: %s", err)
 		}
 
-		if transport.bearer.Load() == nil {
+		if transport.jwt.Load() == nil {
 			t.Errorf("saved bearer token is nil")
 		}
 
@@ -392,7 +392,7 @@ func TestTransport_JWT(t *testing.T) {
 			t.Errorf("unexpected error minting fresh jwt: %s", err)
 		}
 
-		if transport.bearer.Load() == nil {
+		if transport.jwt.Load() == nil {
 			t.Errorf("saved bearer token is nil")
 		}
 
