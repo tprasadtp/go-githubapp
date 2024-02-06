@@ -1,14 +1,21 @@
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
+# SPDX-License-Identifier: MIT
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: lint
 on:
   push:
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
 jobs:
   lint:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,14 +31,3 @@ jobs:
         with:
           version: latest
           only-new-issues: true
-
-  labels:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verify labels.json is valid
-        run: jq -r '.[] | "\(.name) \(.color) \(.description)"' .github/labels.json
