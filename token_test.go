@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tprasadtp/go-githubapp/internal"
+	"github.com/tprasadtp/go-githubapp/internal/api"
 	"github.com/tprasadtp/go-githubapp/internal/testdata/apitestdata"
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
 )
@@ -203,7 +203,7 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				Owner:          "gh-integration-tests",
 			},
 			ctx: context.Background(),
-			rt: internal.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+			rt: api.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
 				resp := httptest.NewRecorder()
 				resp.Body = nil
 				resp.WriteHeader(http.StatusNotFound)
@@ -222,14 +222,14 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				Owner:          "gh-integration-tests",
 			},
 			ctx: context.Background(),
-			rt: internal.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+			rt: api.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
 				t.Helper()
-				if r.Header.Get(authzHeader) == "" {
-					t.Errorf("%s header is empty", authzHeader)
+				if r.Header.Get(api.AuthzHeader) == "" {
+					t.Errorf("%s header is empty", api.AuthzHeader)
 				}
 
-				if r.Header.Get(apiVersionHeader) == "" {
-					t.Errorf("%s header is empty", apiVersionHeader)
+				if r.Header.Get(api.VersionHeader) == "" {
+					t.Errorf("%s header is empty", api.VersionHeader)
 				}
 
 				if !strings.EqualFold(r.Method, http.MethodDelete) {
@@ -253,7 +253,7 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				Exp:            time.Now().Add(time.Hour),
 				Owner:          "gh-integration-tests",
 			},
-			rt: internal.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+			rt: api.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
 				resp := httptest.NewRecorder()
 				resp.WriteHeader(http.StatusNoContent)
 				return resp.Result(), nil

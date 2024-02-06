@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
 var (
@@ -137,13 +139,13 @@ func VerifyWebHookRequest(secret string, req *http.Request) (WebHook, error) {
 
 	// Ensure other X-GitHub-* headers are populated.
 	requiredHeaders := [...]string{
-		eventHeader,
-		hookIDHeader,
-		deliveryHeader,
-		installationTargetTypeHeader,
-		installationTargetIDHeader,
-		contentTypeHeader,
-		signatureSHA256Header,
+		api.EventHeader,
+		api.HookIDHeader,
+		api.DeliveryHeader,
+		api.InstallationTargetTypeHeader,
+		api.InstallationTargetIDHeader,
+		api.ContentTypeHeader,
+		api.SignatureSHA256Header,
 	}
 	missingHeaders := make([]string, 0, len(requiredHeaders))
 	for _, item := range requiredHeaders {
@@ -157,21 +159,23 @@ func VerifyWebHookRequest(secret string, req *http.Request) (WebHook, error) {
 	}
 
 	// Only support content type application/json.
-	if req.Header.Get(contentTypeHeader) != "application/json" {
-		return WebHook{}, fmt.Errorf("%w: %q", ErrWebHookContentType, req.Header.Get(contentTypeHeader))
+	if req.Header.Get(api.ContentTypeHeader) != "application/json" {
+		return WebHook{}, fmt.Errorf("%w: %q", ErrWebHookContentType,
+			req.Header.Get(api.ContentTypeHeader))
 	}
 
 	// Ensure X-GitHub-Hook-Installation-Target-ID header is an integer.
-	installID, err := strconv.ParseUint(req.Header.Get(installationTargetIDHeader), 10, 64)
+	installID, err := strconv.ParseUint(req.Header.Get(api.InstallationTargetIDHeader), 10, 64)
 	if err != nil {
-		return WebHook{}, fmt.Errorf("%w: invalid %s header", ErrWebHookRequest, installationTargetIDHeader)
+		return WebHook{},
+			fmt.Errorf("%w: invalid %s header", ErrWebHookRequest, api.InstallationTargetIDHeader)
 	}
 
 	// Ensure X-Hub-Signature-256 header exists and has a valid format.
-	signature := req.Header.Get(signatureSHA256Header)
+	signature := req.Header.Get(api.SignatureSHA256Header)
 	if !strings.HasPrefix(signature, "sha256=") {
 		return WebHook{}, fmt.Errorf("%w: missing prefix sha256= from %s header",
-			ErrWebHookRequest, signatureSHA256Header)
+			ErrWebHookRequest, api.SignatureSHA256Header)
 	}
 
 	// Decode hex encoded signature.
@@ -194,12 +198,12 @@ func VerifyWebHookRequest(secret string, req *http.Request) (WebHook, error) {
 	// Check HMAC signature.
 	if hmac.Equal(trusted, untrusted) {
 		w := WebHook{
-			ID:               req.Header.Get(hookIDHeader),
-			DeliveryID:       req.Header.Get(deliveryHeader),
-			Event:            req.Header.Get(eventHeader),
+			ID:               req.Header.Get(api.HookIDHeader),
+			DeliveryID:       req.Header.Get(api.DeliveryHeader),
+			Event:            req.Header.Get(api.EventHeader),
 			Signature:        signature,
 			InstallationID:   installID,
-			InstallationType: req.Header.Get(installationTargetTypeHeader),
+			InstallationType: req.Header.Get(api.InstallationTargetTypeHeader),
 			Payload:          data,
 		}
 		return w, nil

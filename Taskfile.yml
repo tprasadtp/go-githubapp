@@ -1,31 +1,44 @@
-# SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
+# SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
 # SPDX-License-Identifier: MIT
 
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
 
+vars:
+  # Go coverage data directory is user's working directory + '.gocover'.
+  # Go benchmarks data directory is user's working director + 'benchmarks'.
+  GO_COVER_DIR: '{{ joinPath .ROOT_DIR ".gocover" }}'
+  GO_BENCHMARKS_DIR: '{{ joinPath .ROOT_DIR "benchmarks" }}'
+
 tasks:
+  # -----------------------------------------------------------------
+  # Default Task. Shows List of available tasks.
+  #
+  # This intentionally lacks a desc field to hide it from help output.
+  # -----------------------------------------------------------------
   default:
-    desc: "Show a list of available tasks"
     cmds:
       - cmd: task --list
         silent: true
-  go:bench-pkg-internal:
-    desc: "Benchmark single package and output results to a file"
+  # -----------------------------------------------------------------
+  # Creates a directory if not present.
+  # -----------------------------------------------------------------
+  internal:mkdir:
     internal: true
+    label: mkdir
     requires:
       vars:
-        - GO_BENCH_COUNT
-        - GO_BENCH_PKG
-        - GO_BENCH_NAME
-        - GO_BENCH_OUTPUT_FIE
-        - GO_BENCH_TIMEOUT
+        - DIRECTORY
+    status:
+      - >-
+        {{- if .DIRECTORY }}
+          test -d {{ .DIRECTORY|quote }}
+        {{- else }}
+          exit 0
+        {{- end }}
     cmds:
-      - cmd: |
-          go test -benchmem \
-            -run=^$ -count={{.GO_BENCH_COUNT}} \
-            -timeout={{.GO_BENCH_TIMEOUT}} \
-            -bench="{{.GO_BENCH_NAME}}" \
-            {{.GO_BENCH_PKG}} | tee "{{.GO_BENCH_OUTPUT_FIE}}"
+      # Do not use long form flag --parents as it is not supported on macOS.
+      - cmd: mkdir -p {{.DIRECTORY|quote}}
         platforms:
           - linux
           - darwin
@@ -33,65 +46,336 @@ tasks:
           - netbsd
           - dragonfly
           - openbsd
-      - cmd: |
-          powershell.exe -NonInteractive -NoProfile -NoLogo -Command 'go test -benchmem -run="^$" -count={{.GO_BENCH_COUNT}} -timeout={{.GO_BENCH_TIMEOUT}} -bench="{{.GO_BENCH_NAME}}" {{.GO_BENCH_PKG}} | Tee-Object "{{.GO_BENCH_OUTPUT_FIE}}"'
+      - cmd: powershell.exe -NonInteractive -NoProfile -NoLogo -Command 'New-Item -ItemType Directory -Force -Path "{{.DIRECTORY}}"'
         platforms:
           - windows
-  go:test-pkg-internal:
-    desc: "Test single go package (internal)"
+  # -----------------------------------------------------------------
+  # Removes files with PATTERN in the given DIRECTORY.
+  # -----------------------------------------------------------------
+  internal:rm-file-glob:
     internal: true
+    label: "rm"
+    requires:
+      vars:
+        - DIRECTORY
+        - PATTERN
+    status:
+      - >-
+        {{- if .DIRECTORY }}
+          ! test -d {{ .DIRECTORY|quote }}
+        {{- else }}
+          exit 0
+        {{- end }}
+    cmds:
+      # Do not use long form flag --parents as it is not supported on macOS.
+      - cmd: rm -f {{ joinPath (.DIRECTORY | quote) .PATTERN }}
+        platforms:
+          - linux
+          - darwin
+          - freebsd
+          - netbsd
+          - dragonfly
+          - openbsd
+      - cmd: powershell.exe -NonInteractive -NoProfile -NoLogo -Command 'Remove-Item -Force -Path "{{ joinPath .DIRECTORY .PATTERN  }}"'
+        platforms:
+          - windows
+  # -----------------------------------------------------------------
+  # Removes an empty DIRECTORY.
+  # -----------------------------------------------------------------
+  internal:rmdir:
+    internal: true
+    label: "rmdir"
+    requires:
+      vars:
+        - DIRECTORY
+    status:
+      - >-
+        {{- if .DIRECTORY }}
+          ! test -d {{ .DIRECTORY|quote }}
+        {{- else }}
+          exit 0
+        {{- end }}
+    cmds:
+      - cmd: rmdir {{ .DIRECTORY | quote }}
+        platforms:
+          - linux
+          - darwin
+          - freebsd
+          - netbsd
+          - dragonfly
+          - openbsd
+      - cmd: powershell.exe -NonInteractive -NoProfile -NoLogo -Command 'Remove-Item -Force -Path "{{ .DIRECTORY }}"'
+        platforms:
+          - windows
+  # -----------------------------------------------------------------
+  # Create .gocover directory to store coverage data
+  # -----------------------------------------------------------------
+  internal:go:create-coverage-dir:
+    internal: true
+    label: go:create-coverage-dir
+    cmds:
+      - task: internal:mkdir
+        vars:
+          DIRECTORY: "{{ .GO_COVER_DIR }}"
+  # -----------------------------------------------------------------
+  # Cleanup coverage files before building/testing.
+  #
+  # This is required to avoid covtool errors when sources change.
+  # Thus this task fingerprints the sources, and only executed
+  # when relevant source files change.
+  # Unlike clean-coverage task, this will not remove coverage directory.
+  #
+  # Test tasks should use internal:go:clean-coverage-files:pre-build
+  # as it avoids duplicate work by nesting two tasks. Otherwise,
+  # internal:rm-file-glob  tasks will be executed multiple times on
+  # change to go sources or Taskfile.
+  # -----------------------------------------------------------------
+  internal:go:clean-coverage-files:
+    internal: true
+    status:
+      - >-
+        {{- if .GO_COVER_DIR }}
+          ! test -d {{ .GO_COVER_DIR|quote }}
+        {{- else }}
+          exit 0
+        {{- end }}
+    cmds:
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: "{{ .GO_COVER_DIR }}"
+          PATTERN: "{{ .ITEM }}"
+        for:
+          - "covcounters.*"
+          - "covmeta.*"
+          - "coverage.*"
+  internal:go:clean-coverage-files:pre-build:
+    internal: true
+    method: checksum
+    sources:
+      - "**/*.go"
+      - "Taskfile.yml"
+    cmds:
+      - task: internal:go:clean-coverage-files
+  # -----------------------------------------------------------------
+  # Run go test on package(s) specified by GO_TEST_PKG.
+  # -----------------------------------------------------------------
+  internal:go:test:
+    internal: true
+    label: "go:test"
     requires:
       vars:
         - GO_TEST_PKG
-        - GO_TEST_TIMEOUT
+    preconditions:
+      - sh: >-
+          {{- if .GO_COVER_DIR }}
+            {{- if not (osIsAbs .GO_COVER_DIR) }}
+              false
+            {{- end }}
+          {{- end }}
+        msg: "GO_COVER_DIR({{.GO_COVER_DIR}}) must be an absolute path."
     cmds:
-      - cmd: go test -cover -timeout={{.GO_TEST_TIMEOUT}} {{.GO_TEST_PKG}}
-
-  go:test-all-short:
-    desc: "Test all go packages (short mode)"
-    aliases:
-      - "test-all-short"
+      # Cleanup coverage files if sources have changed.
+      - task: internal:go:clean-coverage-files:pre-build
+      # Create .gocover directory to store coverage data.
+      - task: internal:go:create-coverage-dir
+      # Run go test, optionally with coverage directory specified.
+      - cmd: go test {{ .GO_TEST_FLAG_VERBOSE }} -cover -timeout {{ default "3m" .GO_TEST_TIMEOUT }} {{ .GO_TEST_PKG }} {{ .GO_TEST_FLAG_COVERDIR }} {{.CLI_ARGS}}
+    vars:
+      # GO_TEST_FLAG_COVERDIR will be set if GO_COVER_DIR is already set and is
+      # an absolute path. This is enforced as --test.coverdir does not deal with relative
+      # paths when testing multiple packages or when running trampolines.
+      # See    - https://github.com/golang/go/issues/51430#issuecomment-1344711300
+      GO_TEST_FLAG_COVERDIR: >-
+        {{- if .GO_COVER_DIR }}
+          {{- if osIsAbs .GO_COVER_DIR }}
+            {{- printf `--test.gocoverdir "%s"` .GO_COVER_DIR }}
+          {{- end }}
+        {{- end }}
+      # If user already specified -v/-v=true flag, skip checking variables for debug flags.
+      # Otherwise check if RUNNER_DEBUG or DEBUG are set to truthy value and set GO_TEST_FLAG_VERBOSE
+      # to -v.
+      #
+      # Output of this variable MUST be a single line. i.e no newlines.
+      GO_TEST_FLAG_VERBOSE: >-
+        {{- if not (mustRegexMatch "--?v=?(true|false)?" .CLI_ARGS) }}
+          {{- if eq .RUNNER_DEBUG "1" }}
+            {{- printf "-v" }}
+          {{- else if .DEBUG }}
+            {{- if or (eq .DEBUG "1") (eq (lower .DEBUG) "yes") (eq (lower .DEBUG) "true") }}
+                {{- printf "-v" }}
+              {{- end }}
+          {{- end }}
+        {{- end }}
+  # -----------------------------------------------------------------
+  # Create benchmarks directory to store benchmark data.
+  # -----------------------------------------------------------------
+  internal:go:create-benchmarks-dir:
+    internal: true
     cmds:
-      - cmd: go test -cover -timeout=1m -short ./...
-
-  go:test-all:
-    desc: "Test all go packages"
-    aliases:
-      - "test-all"
-    cmds:
-      - cmd: go test -cover -timeout=2m ./...
-
-  go:test-go-githubapp-integration:
-    desc: "Test all go packages"
-    aliases:
-      - "test-integration"
-      - "e2e"
-    cmds:
-      - cmd: go test -cover -timeout=2m -run ^TestIntegration -v github.com/tprasadtp/go-githubapp
-
-  go:test-go-githubapp:
-    desc: "Test all go packages"
-    aliases:
-      - "test-go-githubapp"
-    cmds:
-      - cmd: go test -cover -timeout=1m -short -v github.com/tprasadtp/go-githubapp
-
-  pulumi:test-infra-up:
-    desc: "Create/Update test infra"
-    env:
-      PULUMI_CONFIG_PASSPHRASE: ""
-      GITHUB_OWNER: "gh-integration-tests"
+      - task: internal:mkdir
+        vars:
+          DIRECTORY: "{{ .GO_BENCHMARKS_DIR }}"
+  # -----------------------------------------------------------------
+  # Benchmark a package and save output to a file.
+  # -----------------------------------------------------------------
+  internal:go:benchmark:
+    internal: true
+    label: "go:benchmark"
     requires:
       vars:
-        - GITHUB_OWNER
+        - GO_BENCHMARK_PKG
+    deps:
+      - internal:go:create-benchmarks-dir
+    cmds:
+      # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
+      #   for flag with dot '.' (like test.v) as PowerShell mangles it.
+      #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+      - cmd: go test -run="^#" -benchmem -timeout {{.GO_BENCHMARK_TIMEOUT}} -bench={{.GO_BENCHMARK_NAME|quote}} {{.GO_BENCHMARK_PKG}} {{.CLI_ARGS}} {{if .GO_BENCHMARK_OUTPUT_FILE}} | tee {{ .GO_BENCHMARK_OUTPUT_FILE | quote }}{{ end }}
+        platforms:
+          - linux
+          - darwin
+          - freebsd
+          - netbsd
+          - dragonfly
+          - openbsd
+      - cmd: powershell.exe -NonInteractive -NoProfile -NoLogo -Command 'go test -benchmem -run="^#" -timeout={{.GO_BENCHMARK_TIMEOUT}} -bench={{.GO_BENCHMARK_NAME|quote}} {{.GO_BENCHMARK_PKG}} {{.CLI_ARGS}} {{if .GO_BENCHMARK_OUTPUT_FILE}} | Tee-Object {{ printf `"%s"` .GO_BENCHMARK_OUTPUT_FILE }}{{ end }}'
+        platforms:
+          - windows
+    vars:
+      # Timeout for benchmarks. Defaults to 3m if not specified.
+      GO_BENCHMARK_TIMEOUT: '{{ default "3m" .GO_BENCHMARK_TIMEOUT }}'
+      # Name of the benchmarks to run. This is passed to -run flag of go test.
+      GO_BENCHMARK_NAME: '{{ default "." .GO_BENCHMARK_NAME }}'
+      # Benchmark output is typically saved to a file to make it available for
+      # tools like benchstat. Output file will not be defined/created if following
+      # variables is are not defined.
+      #  - GO_BENCHMARKS_DIR
+      #  - GO_BENCHMARK_OUTPUT_NAME.
+      GO_BENCHMARK_OUTPUT_FILE: >-
+        {{- if .GO_BENCHMARKS_DIR }}
+          {{- if .GO_BENCHMARK_OUTPUT_NAME }}
+              {{- joinPath .GO_BENCHMARKS_DIR .GO_BENCHMARK_OUTPUT_NAME }}
+          {{- end }}
+        {{- end }}
+  # -----------------------------------------------------------------
+  # Run all configured linters.
+  # -----------------------------------------------------------------
+  lint:
+    desc: "Run all configured linters"
+    summary: |
+      Run all configured linters on the project.
+    prefix: "lint"
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: Missing tool 'golangci-lint'.
+    aliases:
+      - "go:lint"
+      - "golangci-lint"
+    cmd: golangci-lint run
+  # -----------------------------------------------------------------
+  # Test all packages with coverage.
+  # -----------------------------------------------------------------
+  test:
+    desc: "Test all packages"
+    summary: |-
+      Runs Go test on all supported packages.
+
+      This by default will create .gocover directory in Root Taskfile's
+      directory to store coverage data which may be written by the test
+      itself or via test trampolines.
+      Runtime Info:
+
+        OS             : {{ default "NA" OS }}
+        GO_COVER_DIR   : {{ default "NA" .GO_COVER_DIR }}
+    aliases:
+      - "go:test"
+    cmds:
+      - task: internal:go:test
+        vars:
+          GO_TEST_PKG: "./..."
+  # -----------------------------------------------------------------
+  # Run benchmarks
+  # -----------------------------------------------------------------
+  bench:
+    desc: "Run Benchmarks"
+    summary: |-
+      Runs Go benchmarks and save benchmark output.
+
+      Runtime Info:
+
+        OS                  : {{ default "NA" OS }}
+        GO_BENCHMARKS_DIR   : {{ default "NA" .GO_BENCHMARKS_DIR }}
+    aliases:
+      - "go:bench"
+      - "benchmark"
+      - "benchmarks"
+    cmds:
+      - task: internal:go:benchmark
+        vars:
+          GO_BENCHMARK_PKG: "{{ .GO_MODULE_NAME }}"
+          GO_BENCHMARK_OUTPUT_NAME: >-
+            {{ printf "%s.bench" (base .GO_MODULE_NAME) }}
+    vars:
+      GO_MODULE_NAME:
+        # GOWORK=off is important, to avoid getting all modules
+        # listed in go.work file.
+        sh: GOWORK=off go list -m
+  # -----------------------------------------------------------------
+  # Cleanup benchmark files.
+  # -----------------------------------------------------------------
+  clean-benchmarks:
+    desc: "Clean benchmark files"
+    summary: |
+      Cleans up benchmark files generated by this task file.
+
+      This intentionally does not cleanup benchmarks directory created.
+      This will not delete any non benchmark files created within that
+      directory.
+
+      Benchmarks Directory   : {{ default "NA" .GO_BENCHMARKS_DIR}}
+    aliases:
+      - go:clean-benchmarks
+      - clean-bench
+    status:
+      - >-
+        {{- if .GO_BENCHMARKS_DIR }}
+          ! test -d {{ .GO_BENCHMARKS_DIR|quote }}
+        {{- else }}
+          exit 0
+        {{- end }}
+    cmds:
+      - task: internal:rm-file-glob
+        vars:
+          DIRECTORY: "{{ .GO_BENCHMARKS_DIR }}"
+          PATTERN: "{{ .ITEM }}"
+        for:
+          - "*.bench"
+  # -----------------------------------------------------------------
+  # Cleanup generated data, cache and build artifacts
+  # -----------------------------------------------------------------
+  clean:
+    desc: "Clean cache, build artifacts etc."
+    aliases:
+      - "go:clean"
+    cmds:
+      - task: internal:go:clean-coverage-files
+      - task: internal:rmdir
+        vars:
+          DIRECTORY: '{{ .GO_COVER_DIR }}'
+  # -----------------------------------------------------------------
+  # Bring up the testing infrastructure.
+  # -----------------------------------------------------------------
+  test-infra:up:
+    desc: "Create or update test infra"
+    aliases:
+      - "test-infra:create"
+      - "pulumi:up"
+    env:
+      PULUMI_CONFIG_PASSPHRASE: '{{ default "" .PULUMI_CONFIG_PASSPHRASE }}'
+      GITHUB_OWNER: '{{ default "gh-integration-tests" .GITHUB_OWNER }}'
+    requires:
+      vars:
         - GITHUB_TOKEN
-    dir: internal/testinfra
+    dir: "internal/testinfra"
     cmds:
       - cmd: pulumi up
-
-  go:lint:
-    desc: "Run golangci-lint"
-    aliases:
-      - "lint"
-    prefix: "lint"
-    cmd: golangci-lint run

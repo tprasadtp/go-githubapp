@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: Copyright 2023 Prasad Tengse
+// SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
 // SPDX-License-Identifier: MIT
 
 package testkeys_test
 
 import (
+	"crypto/ed25519"
 	"testing"
 
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
@@ -29,5 +30,12 @@ func TestKeys(t *testing.T) {
 		if key.Curve.Params().BitSize != 256 {
 			t.Errorf("expected ecdsa key size 256, got %d", key.Curve.Params().BitSize)
 		}
+	})
+
+	t.Run("ED25519", func(t *testing.T) {
+		//nolint:gosimple // ignore
+		var key ed25519.PrivateKey
+		key = testkeys.ED25519()
+		_ = key
 	})
 }

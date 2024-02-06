@@ -11,7 +11,7 @@ resources.
     gh extension install cli/gh-webhook
     ```
 
-- In another terminal, run test webhook server which dumps raw HTTP requests to file.
+- Run webhook server which dumps raw HTTP requests to file.
     ```console
     go run internal/testdata/webhooks/generate.go \
         -port 8888 \

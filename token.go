@@ -37,6 +37,9 @@ type InstallationToken struct {
 	// If omitted, assume the default value of "https://api.githhub.com/".
 	Server string `json:"server,omitempty" yaml:"server,omitempty"`
 
+	// UserAgent used to fetch this installation access token.
+	UserAgent string `json:"user_agent,omitempty" yaml:"user_agent,omitempty"`
+
 	// Token exp time.
 	Exp time.Time `json:"exp,omitempty" yaml:"exp,omitempty"`
 
@@ -53,11 +56,11 @@ type InstallationToken struct {
 	Permissions map[string]string `json:"permissions,omitempty" yaml:"permissions,omitempty"`
 
 	// BotUsername is app's github username.
-	BotUsername string
+	BotUsername string `json:"bot_username,omitempty" yaml:"bot_username,omitempty"`
 
 	// BotCommitterEmail is committer email to use to attribute commits to the bot.
 	// This is in the form "<user-id>+<app-name>[bot]@users.noreply.github.com".
-	BotCommitterEmail string
+	BotCommitterEmail string `json:"bot_committer_email,omitempty" yaml:"bot_committer_email,omitempty"`
 }
 
 // LogValue implements [log/slog.LogValuer].
@@ -66,11 +69,14 @@ func (t *InstallationToken) LogValue() slog.Value {
 		slog.String("server", t.Server),
 		slog.Uint64("app_id", t.AppID),
 		slog.String("app_name", t.AppName),
+		slog.String("user_agent", t.UserAgent),
 		slog.Uint64("installation_id", t.InstallationID),
 		slog.Any("repositories", t.Repositories),
 		slog.String("token", "REDACTED"),
 		slog.Time("exp", t.Exp),
 		slog.Any("permissions", t.Permissions),
+		slog.String("bot_username", t.BotUsername),
+		slog.String("bot_committer_email", t.BotCommitterEmail),
 	)
 }
 
@@ -124,15 +130,16 @@ func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) er
 	}
 
 	// Add Headers.
-	r.Header.Set(apiVersionHeader, apiVersionHeaderValue)
-	r.Header.Set(authzHeader, t.Token)
-	r.Header.Add(acceptHeader, acceptHeaderValue)
-	r.Header.Add(uaHeader, uaHeaderValue)
-
-	// Revoke token.
-	client := http.Client{
-		Timeout: time.Minute,
+	r.Header.Set(api.VersionHeader, api.VersionHeaderValue)
+	r.Header.Set(api.AuthzHeader, api.AuthzHeaderValue(t.Token))
+	r.Header.Add(api.AcceptHeader, api.AcceptHeaderValue)
+	if t.UserAgent == "" {
+		r.Header.Add(api.UAHeader, api.UAHeaderValue)
+	} else {
+		r.Header.Add(api.UAHeader, t.UserAgent)
 	}
+
+	client := &http.Client{}
 
 	// Uses custom round tripper specified.
 	if rt != nil {

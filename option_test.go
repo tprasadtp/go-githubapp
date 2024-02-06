@@ -11,7 +11,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/tprasadtp/go-githubapp/internal"
 	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
@@ -400,7 +399,7 @@ func TestWithRoundTripper(t *testing.T) {
 	t.Run("non-nil", func(t *testing.T) {
 		transport := Transport{}
 		opts := Options(WithRoundTripper(
-			internal.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+			api.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
 				t.Logf("request=%v", r)
 				return http.DefaultTransport.RoundTrip(r)
 			})))
@@ -450,6 +449,34 @@ func TestWithInstallationID(t *testing.T) {
 
 		if transport.installID != 99 {
 			t.Errorf("expected installation id to be 99, got %d", transport.installID)
+		}
+	})
+}
+
+func TestWithUserAgent(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		if WithUserAgent("") != nil {
+			t.Errorf("WithRoundTripper with empty ua must return nil")
+		}
+	})
+
+	t.Run("spaces", func(t *testing.T) {
+		if WithUserAgent("\t") != nil {
+			t.Errorf("WithRoundTripper with spaces ua must return nil")
+		}
+	})
+
+	t.Run("non-empty", func(t *testing.T) {
+		transport := Transport{}
+		const ua = "my-custom-user-agent/v1"
+		opts := Options(WithUserAgent(ua))
+		err := opts.apply(&transport)
+		if err != nil {
+			t.Errorf("expected no error, got %s", err)
+		}
+
+		if transport.ua != ua {
+			t.Errorf("transport.ua should be %s, got %s", ua, transport.ua)
 		}
 	})
 }

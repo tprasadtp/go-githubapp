@@ -314,13 +314,10 @@ func BenchmarkMintJWT(b *testing.B) {
 	ctx := context.Background()
 	var v JWT
 
-	b.Run("jwt", func(b *testing.B) {
-		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			v, err = jwtSigner.Mint(ctx, 99, time.Now())
-		}
-	})
-
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v, _ = jwtSigner.Mint(ctx, 99, time.Now())
+	}
 	_ = v
 }

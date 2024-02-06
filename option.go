@@ -116,6 +116,24 @@ func WithRoundTripper(next http.RoundTripper) Option {
 	}
 }
 
+// WithUserAgent configures user agent header to use for token related API requests.
+//
+// Typically [Transport] which implements [http.RoundTripper] will re-use the User-Agent
+// header specified by the [http.Request]. However, when building the [Transport] several
+// HTTP requests need to be made to verify and configure it. User agent specified here
+// will be used during bootstrapping. This is also as fallback for token renewal requests.
+func WithUserAgent(ua string) Option {
+	if strings.TrimSpace(ua) == "" {
+		return nil
+	}
+	return &funcOption{
+		f: func(t *Transport) error {
+			t.ua = ua
+			return nil
+		},
+	}
+}
+
 // WithRepositories configures [Transport] to use installation for repos specified.
 // Unlike other installation options, this can be used multiple times.
 func WithRepositories(repos ...string) Option {
