@@ -1,13 +1,13 @@
 # SPDX-FileCopyrightText: Copyright 2024 Prasad Tengse
 # SPDX-License-Identifier: MIT
-
+#
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
 
 vars:
-  # Go coverage data directory is user's working directory + '.gocover'.
-  # Go benchmarks data directory is user's working director + 'benchmarks'.
+  # Go coverage data directory is Root Taskfile's directory + '.gocover'.
   GO_COVER_DIR: '{{ joinPath .ROOT_DIR ".gocover" }}'
+  # Go benchmarks data directory is Root Taskfile's directory + 'benchmarks'.
   GO_BENCHMARKS_DIR: '{{ joinPath .ROOT_DIR "benchmarks" }}'
 
 tasks:
@@ -25,17 +25,11 @@ tasks:
   # -----------------------------------------------------------------
   internal:mkdir:
     internal: true
-    label: mkdir
     requires:
       vars:
         - DIRECTORY
     status:
-      - >-
-        {{- if .DIRECTORY }}
-          test -d {{ .DIRECTORY|quote }}
-        {{- else }}
-          exit 0
-        {{- end }}
+      - "{{ if .DIRECTORY }}test -d {{ .DIRECTORY|quote }}{{ end }}"
     cmds:
       # Do not use long form flag --parents as it is not supported on macOS.
       - cmd: mkdir -p {{.DIRECTORY|quote}}
@@ -54,18 +48,12 @@ tasks:
   # -----------------------------------------------------------------
   internal:rm-file-glob:
     internal: true
-    label: "rm"
     requires:
       vars:
         - DIRECTORY
         - PATTERN
     status:
-      - >-
-        {{- if .DIRECTORY }}
-          ! test -d {{ .DIRECTORY|quote }}
-        {{- else }}
-          exit 0
-        {{- end }}
+      - "{{ if .DIRECTORY }}! test -d {{ .DIRECTORY|quote }}{{ end }}"
     cmds:
       # Do not use long form flag --parents as it is not supported on macOS.
       - cmd: rm -f {{ joinPath (.DIRECTORY | quote) .PATTERN }}
@@ -76,7 +64,7 @@ tasks:
           - netbsd
           - dragonfly
           - openbsd
-      - cmd: powershell.exe -NonInteractive -NoProfile -NoLogo -Command 'Remove-Item -Force -Path "{{ joinPath .DIRECTORY .PATTERN  }}"'
+      - cmd: powershell.exe -NonInteractive -NoProfile -NoLogo -Command '(Remove-Item -Force -ErrorAction SilentlyContinue -Path "{{ joinPath .DIRECTORY .PATTERN  }}")'
         platforms:
           - windows
   # -----------------------------------------------------------------
@@ -84,17 +72,11 @@ tasks:
   # -----------------------------------------------------------------
   internal:rmdir:
     internal: true
-    label: "rmdir"
     requires:
       vars:
         - DIRECTORY
     status:
-      - >-
-        {{- if .DIRECTORY }}
-          ! test -d {{ .DIRECTORY|quote }}
-        {{- else }}
-          exit 0
-        {{- end }}
+      - "{{ if .DIRECTORY }}! test -d {{ .DIRECTORY|quote }}{{ end }}"
     cmds:
       - cmd: rmdir {{ .DIRECTORY | quote }}
         platforms:
@@ -112,7 +94,8 @@ tasks:
   # -----------------------------------------------------------------
   internal:go:create-coverage-dir:
     internal: true
-    label: go:create-coverage-dir
+    status:
+      # - "{{ if .GO_COVER_DIR }}test -d {{ .GO_COVER_DIR|quote }}{{ end }}"
     cmds:
       - task: internal:mkdir
         vars:
@@ -133,12 +116,7 @@ tasks:
   internal:go:clean-coverage-files:
     internal: true
     status:
-      - >-
-        {{- if .GO_COVER_DIR }}
-          ! test -d {{ .GO_COVER_DIR|quote }}
-        {{- else }}
-          exit 0
-        {{- end }}
+      - "{{ if .GO_COVER_DIR }}! test -d {{ .GO_COVER_DIR|quote }}{{ end }}"
     cmds:
       - task: internal:rm-file-glob
         vars:
@@ -161,7 +139,6 @@ tasks:
   # -----------------------------------------------------------------
   internal:go:test:
     internal: true
-    label: "go:test"
     requires:
       vars:
         - GO_TEST_PKG
@@ -211,6 +188,8 @@ tasks:
   # -----------------------------------------------------------------
   internal:go:create-benchmarks-dir:
     internal: true
+    status:
+      - "{{ if .GO_BENCHMARKS_DIR }}test -d {{ .GO_BENCHMARKS_DIR|quote }}{{ end }}"
     cmds:
       - task: internal:mkdir
         vars:
@@ -220,16 +199,11 @@ tasks:
   # -----------------------------------------------------------------
   internal:go:benchmark:
     internal: true
-    label: "go:benchmark"
     requires:
       vars:
         - GO_BENCHMARK_PKG
-    deps:
-      - internal:go:create-benchmarks-dir
     cmds:
-      # - Do not use '-{flag}={arg}' format if arg contains dot '.', or single dashes '-'
-      #   for flag with dot '.' (like test.v) as PowerShell mangles it.
-      #   See https://github.com/PowerShell/PowerShell/issues/6291#issuecomment-747104988.
+      - task: internal:go:create-benchmarks-dir
       - cmd: go test -run="^#" -benchmem -timeout {{.GO_BENCHMARK_TIMEOUT}} -bench={{.GO_BENCHMARK_NAME|quote}} {{.GO_BENCHMARK_PKG}} {{.CLI_ARGS}} {{if .GO_BENCHMARK_OUTPUT_FILE}} | tee {{ .GO_BENCHMARK_OUTPUT_FILE | quote }}{{ end }}
         platforms:
           - linux
@@ -337,12 +311,7 @@ tasks:
       - go:clean-benchmarks
       - clean-bench
     status:
-      - >-
-        {{- if .GO_BENCHMARKS_DIR }}
-          ! test -d {{ .GO_BENCHMARKS_DIR|quote }}
-        {{- else }}
-          exit 0
-        {{- end }}
+      - "{{ if .GO_BENCHMARKS_DIR }}! test -d {{ .GO_BENCHMARKS_DIR|quote }}{{ end }}"
     cmds:
       - task: internal:rm-file-glob
         vars:
