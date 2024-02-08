@@ -21,7 +21,8 @@ comment:
 
 # Store coverage report as actions artifact if on default branch.
 report:
-  if: is_default_branch
+  # if: is_default_branch
+  if: true
   datastores:
     - artifact://${GITHUB_REPOSITORY}
 
