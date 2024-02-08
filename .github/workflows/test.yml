@@ -96,9 +96,6 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install octocov
-        run:  go install github.com/k1LoW/octocov@latest
-
       - name: Download and merge coverage data
         uses: actions/download-artifact@v4
         with:
@@ -113,6 +110,4 @@ jobs:
         run: go tool covdata textfmt -i .gocover -o .gocover/coverage.out
 
       - name: Process coverage data
-        run: octocov --config .octocov.yml
-        env:
-          OCTOCOV_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: k1LoW/octocov-action@v1
