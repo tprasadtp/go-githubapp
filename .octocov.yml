@@ -30,7 +30,6 @@ report:
 diff:
   datastores:
     - artifact://${GITHUB_REPOSITORY}
-    - github://tprasadtp/coverage/${GITHUB_REPOSITORY}
 
 # Disable processing test execution time.
 testExecutionTime:
