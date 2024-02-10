@@ -3,6 +3,7 @@
 HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for WebHook Verification. Supports authenticating with Installation Token and JWT.
 
 [![go-reference](https://img.shields.io/badge/go-reference-00758D?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
+[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-githubapp?logo=go&logoColor=white&color=00758D&label=go)](https://github.com/tprasadtp/go-githubapp/blob/master/go.mod)
 [![test](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml)
 [![release](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml)
