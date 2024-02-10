@@ -159,7 +159,7 @@ func VerifyWebHookRequest(secret string, req *http.Request) (WebHook, error) {
 	}
 
 	// Only support content type application/json.
-	if req.Header.Get(api.ContentTypeHeader) != "application/json" {
+	if req.Header.Get(api.ContentTypeHeader) != api.ContentTypeJSON {
 		return WebHook{}, fmt.Errorf("%w: %q", ErrWebHookContentType,
 			req.Header.Get(api.ContentTypeHeader))
 	}

@@ -30,7 +30,7 @@ func main() {
         githubapp.WithPermissions("contents:read"),
     )
 
-    // Build HTTP client with custom round tripper.
+    // Build an HTTP client with custom round tripper.
     client := &http.Client{
         Transport: rt,
     }

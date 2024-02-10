@@ -13,22 +13,22 @@ import (
 	"testing"
 )
 
-// Testdata App Owner.
+// AppOwner Testdata App Owner.
 const AppOwner = "gh-integration-tests"
 
-// Testdata installation owner.
+// InstallationOwner Testdata installation owner.
 const InstallationOwner = "gh-integration-tests"
 
 // Installation repository.
 const InstallationRepository = "go-githubapp-repo-one"
 
-// Testdata installation ID.
+// InstallationID Testdata installation ID.
 const InstallationID = 42101303
 
-// Test App ID.
+// AppID Test App ID.
 const AppID = 145695471
 
-// Test App slug.
+// AppSlug Test App slug.
 const AppSlug = "gh-integration-tests-app"
 
 // Read api data once.
@@ -37,7 +37,7 @@ var once sync.Once
 // API dat storage.
 var apiDataMap map[string][]byte
 
-// Get returns API test data which is map of test data to JSON responses
+// Get returns API test data which is a map of test data to JSON responses
 // From API endpoint.
 func Get(t *testing.T) map[string][]byte {
 	once.Do(func() {
