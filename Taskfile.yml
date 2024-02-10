@@ -244,7 +244,7 @@ tasks:
     aliases:
       - "go:lint"
       - "golangci-lint"
-    cmd: golangci-lint run
+    cmd: golangci-lint run {{.CLI_ARGS}}
   # -----------------------------------------------------------------
   # Test all packages with coverage.
   # -----------------------------------------------------------------
