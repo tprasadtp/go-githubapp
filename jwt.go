@@ -104,10 +104,10 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 		return JWT{}, fmt.Errorf("githubapp(jwt): failed to encode JWT header: %w", err)
 	}
 	_, _ = encoder.Write(header)
-	encoder.Close()
+	_ = encoder.Close()
 
 	// Write separator.
-	buf.WriteByte('.')
+	_ = buf.WriteByte('.')
 
 	// Encode JWT Payload.
 	payload, err := json.Marshal(&jwtPayload{
@@ -119,7 +119,7 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 		return JWT{}, fmt.Errorf("githubapp(jwt): failed to encode JWT payload: %w", err)
 	}
 	_, _ = encoder.Write(payload)
-	encoder.Close()
+	_ = encoder.Close()
 
 	// Sign JWT header and payload.
 	hasher := sha256.New()
@@ -148,7 +148,7 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 
 	// Encode signature.
 	_, _ = encoder.Write(signature)
-	encoder.Close()
+	_ = encoder.Close()
 
 	// BearerToken has incomplete metadata, but it will be handled by Transport.JWT.
 	return JWT{Token: buf.String(), Exp: exp, IssuedAt: iat}, nil

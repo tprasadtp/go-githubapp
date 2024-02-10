@@ -1,6 +1,6 @@
 # Integration testing infra
 
-- Create a new github organization.
+- Create a new GitHub organization.
 - Enroll your newly created organization to allow fine-grained access tokens.
 [See this for more info](https://docs.github.com/en/organizations/managing-programmatic-access-to-your-organization/setting-a-personal-access-token-policy-for-your-organization).
 - Create a short-lived GitHub access token under the organization which has following

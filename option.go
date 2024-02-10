@@ -16,9 +16,9 @@ import (
 // Options takes a variadic slice of [Options] and returns
 // a single [Options] which includes all the given options.
 // This is useful for sharing presets. If conflicting options
-// are specified, last one specified wins. As a special case,
+// are specified, last-specified wins. As a special case,
 // if no options are specified or all specified options are nil,
-// this will return nil.
+// this will returns nil.
 func Options(options ...Option) Option {
 	nils := 0
 	for i := range options {
@@ -51,7 +51,7 @@ type Option interface {
 	apply(t *Transport) error
 }
 
-// funcOption wraps a function that is applied to the Transport
+// funcOption wraps a function applied to the Transport
 // during its initial configuration. It implements [Option]
 // interface.
 type funcOption struct {
@@ -71,7 +71,7 @@ var (
 // WithEndpoint configures [Transport] to use custom REST API(v3) endpoint.
 // for authenticating as app, obtaining installation metadata and creating
 // installation access tokens. This MUST be REST(v3) endpoint even though
-// client might be using GitHub GraphQL API.
+// a client might be using GitHub GraphQL API.
 //
 // When not specified or empty, "https://api.github.com/" is used.
 func WithEndpoint(endpoint string) Option {
@@ -118,7 +118,7 @@ func WithRoundTripper(next http.RoundTripper) Option {
 
 // WithUserAgent configures user agent header to use for token related API requests.
 //
-// Typically [Transport] which implements [http.RoundTripper] will re-use the User-Agent
+// Typically, [Transport] which implements [http.RoundTripper] will re-use the User-Agent
 // header specified by the [http.Request]. However, when building the [Transport] several
 // HTTP requests need to be made to verify and configure it. User agent specified here
 // will be used during bootstrapping. This is also as fallback for token renewal requests.
@@ -169,7 +169,7 @@ func WithRepositories(repos ...string) Option {
 					item = repo
 				}
 
-				// Ensure repository name is valid.
+				// Ensure the repository name is valid.
 				if !repoNameRegExp.MatchString(item) {
 					invalid = append(invalid, item)
 				} else {
@@ -197,7 +197,7 @@ func WithRepositories(repos ...string) Option {
 	}
 }
 
-// WithOwner configures installation owner to use.
+// WithOwner configures the installation owner to use.
 func WithOwner(username string) Option {
 	return &funcOption{
 		f: func(t *Transport) error {
@@ -242,13 +242,14 @@ func WithInstallationID(id uint64) Option {
 }
 
 // WithPermissions configures permission scopes. This is useful when app has
-// broader set of permissions a scoped access token is required.
+// a broader set of permissions, a scoped access token is required.
 //
-// Permissions MUST be specified in <scope>:<access> or  <scope>=<access> format.
+// Permissions MUST be specified in "<scope>:<access>" or "<scope>=<access>" format.
 // Where scope is permission scope like "issues" and access can be one of
 // "read", "write" or "admin".
 //
-// For example to request permissions to write issues and pull request can be specified as,
+// For example, to request permissions to write issues and pull request can be
+// specified as,
 //
 //	githubapp.WithPermissions("issues:write", "pull_requests:write")
 func WithPermissions(permissions ...string) Option {
@@ -262,11 +263,11 @@ func WithPermissions(permissions ...string) Option {
 			for _, item := range permissions {
 				item = strings.ToLower(item)
 				if permissionRegEx.MatchString(item) {
-					// Replace = with :
+					// Replace '=' with ':'
 					item = strings.ReplaceAll(item, "=", ":")
 
 					// Ignore error checks as regex already validates
-					// that permissions are in format <scope>:<level> format.
+					// that permissions are in required format.
 					scope, level, _ := strings.Cut(item, ":")
 					m[scope] = level
 				} else {

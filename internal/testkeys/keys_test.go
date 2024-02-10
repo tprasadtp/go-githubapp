@@ -32,7 +32,7 @@ func TestKeys(t *testing.T) {
 		}
 	})
 
-	t.Run("ED25519", func(t *testing.T) {
+	t.Run("ED25519", func(_ *testing.T) {
 		//nolint:gosimple // ignore
 		var key ed25519.PrivateKey
 		key = testkeys.ED25519()

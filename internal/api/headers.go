@@ -18,7 +18,7 @@ const (
 	ContentTypeJSON    = "application/json"
 )
 
-// Github webhook headers in canonical form.
+// GitHub webhook headers in canonical form.
 const (
 	SignatureSHA256Header        = "X-Hub-Signature-256"
 	EventHeader                  = "X-GitHub-Event"
@@ -28,8 +28,8 @@ const (
 	InstallationTargetTypeHeader = "X-GitHub-Hook-Installation-Target-Type"
 )
 
-// AuthzHeaderValue is a convenance function to return Authorization header as value.
-// If token is empty, this returns empty string. token is assumed to be
+// AuthzHeaderValue is a convenience function to return Authorization header as value.
+// If the token is empty, this returns empty string. Token is assumed to be
 // bearer token.
 func AuthzHeaderValue(token string) string {
 	if token == "" {

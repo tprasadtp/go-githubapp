@@ -69,7 +69,8 @@ type App struct {
 	Events      []string          `json:"events,omitempty"`
 }
 
-// ListInstallationRepositoriesResponse is response received by
+// ListInstallationRepositoriesResponse is a response received by
+//
 // https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-repositories-accessible-to-the-app-installation
 type ListInstallationRepositoriesResponse struct {
 	TotalCount   int64         `json:"total_count,omitempty"`

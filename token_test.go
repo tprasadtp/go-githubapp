@@ -203,7 +203,7 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				Owner:          "gh-integration-tests",
 			},
 			ctx: context.Background(),
-			rt: api.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+			rt: api.RoundTripFunc(func(_ *http.Request) (*http.Response, error) {
 				resp := httptest.NewRecorder()
 				resp.Body = nil
 				resp.WriteHeader(http.StatusNotFound)
@@ -253,7 +253,7 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				Exp:            time.Now().Add(time.Hour),
 				Owner:          "gh-integration-tests",
 			},
-			rt: api.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+			rt: api.RoundTripFunc(func(_ *http.Request) (*http.Response, error) {
 				resp := httptest.NewRecorder()
 				resp.WriteHeader(http.StatusNoContent)
 				return resp.Result(), nil
@@ -505,7 +505,7 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 			options: []Option{
 				WithInstallationID(apitestdata.InstallationID),
 			},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			}),
 		},
