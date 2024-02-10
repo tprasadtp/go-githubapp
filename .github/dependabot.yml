@@ -17,16 +17,6 @@ updates:
       interval: "weekly"
       day: "saturday"
     groups:
-      actions:
-        patterns:
-          - "actions/*"
-        exclude-patterns:
-          - "actions/create-github-app-token"
-          - "actions/upload-artifact*"
-          - "actions/download-artifact*"
-      linters:
-        patterns:
-          - "golangci/golangci-lint-action"
       artifacts:
         patterns:
           - "actions/upload-artifact*"
