@@ -2,8 +2,8 @@
 
 HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for WebHook Verification. Supports authenticating with Installation Token and JWT.
 
-[![go-reference](https://img.shields.io/badge/go-reference-00758D?logo=go&logoColor=white)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
-[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-githubapp?logo=go&logoColor=white&color=00758D&label=go)](https://github.com/tprasadtp/go-githubapp/blob/master/go.mod)
+[![go-reference](https://img.shields.io/badge/godoc-reference-5272B4)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
+[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-githubapp?color=00758D&label=go)](https://github.com/tprasadtp/go-githubapp/blob/master/go.mod)
 [![test](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml)
 [![release](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml)
@@ -53,7 +53,7 @@ func main() {
 - This library is designed to provide automatic authentication for [google/go-github], [github.com/shurcooL/githubv4] or your own HTTP client.
 - [Transport] implements [http.RoundTripper] which can authenticate transparently.
 It _will_ override `Authorization` header. None of the other headers are modified. Thus,
-It is user's responsibility to set appropriate headers as required.
+It is user's responsibility to set appropriate headers like user agent etc. as required.
 
 See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-githubapp) for more info and examples.
 
@@ -98,14 +98,13 @@ repository. If only name is specified, then it **MUST** be used with [WithOwner]
 **ONLY** be used for token renewals and verifying app installation and not http client using
 the [Transport].
 
-
 ## Authenticating as an App (JWT)
 
 When none of the installation options [WithOwner], [WithInstallationID] or [WithRepositories]
 are specified, [Transport] authenticates as an app. Some API endpoints like listing
 installations are only accessible to app.
 
-## App Webhooks
+## Verifying Webhooks
 
 [VerifyWebHookRequest] provides a way to verify webhook payload and extract event data from
 headers. See API docs for more info.

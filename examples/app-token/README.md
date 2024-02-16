@@ -20,17 +20,19 @@ Usage: go run github.com/tprasadtp/go-githubapp/examples/app-token@latest
 
 Flags:
   -app-id uint
-        GitHub app ID (required)
-  -install-id uint
-        Installation ID
-  -jwt
-        Generate JWT
+    	GitHub app ID (required)
+  -format string
+    	Output format template
+  -installation-id uint
+    	Installation ID
   -owner string
-        Installation owner
+    	Installation owner
   -private-key string
-        Path to PKCS1 private key file (required)
+    	Path to PKCS1 private key file (required)
   -repos string
-        Comma separated list of repositories
+    	Comma separated list of repositories
+  -revoke
+    	Revoke all tokens provided
 ```
 
 ## Example Usage
@@ -47,15 +49,15 @@ go run github.com/tprasadtp/go-githubapp/examples/app-token@latest \
 Should return something like,
 
 ```
-Token        : ghs_xxxxx
-Owner        : github-username
-Installation : 9999
-Permissions  : map[contents:read issues:read metadata:read]
-user.name    : gh-integration-tests-app[bot]
-user.email   : <app-user-id>+gh-integration-tests-app[bot]@users.noreply.github.com
+Token             : ghs_xxxxxxxxxxxxxxx
+Owner             : gh-integration-tests
+Installation      : 1234567
+Repositories      : []
+Permissions       : map[contents:read issues:read metadata:read]
+BotUsername       : gh-integration-tests-app[bot]
+BotCommitterEmail : 98765432+gh-integration-tests-app[bot]@users.noreply.github.com
 ```
 
-where `ghs_xxxx`is installation token which can be used
-for API and git operations.
+where `ghs_xxxx`is installation token which can be used for API and git operations.
 
 [gh-app-token]: https://github.com/tprasadtp/gh-app-token
