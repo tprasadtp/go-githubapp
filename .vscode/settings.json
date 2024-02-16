@@ -6,7 +6,8 @@
   ],
   // Enable go vulnerability checks.
   "go.diagnostic.vulncheck": "Imports",
+  // Default test timeout.
   "go.testTimeout": "60s",
-  // Load env for secrets required for integration tests.
+  // Load env vars required for integration tests.
   "go.testEnvFile": "${workspaceFolder}/.env",
 }
