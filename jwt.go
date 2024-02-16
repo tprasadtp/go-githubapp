@@ -67,7 +67,7 @@ type contextSigner interface {
 
 // jwtMinter mints GitHub app JWT.
 type jwtMinter interface {
-	Mint(ctx context.Context, iss uint64, now time.Time) (JWT, error)
+	MintJWT(ctx context.Context, iss uint64, now time.Time) (JWT, error)
 }
 
 // jwtRS256 mints JWT tokens using RS256.
@@ -88,8 +88,8 @@ type jwtPayload struct {
 	Exp      int64  `json:"exp"`
 }
 
-// Mint mints new  JWT token.
-func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, error) {
+// MintJWT mints new  JWT token.
+func (s *jwtRS256) MintJWT(ctx context.Context, iss uint64, now time.Time) (JWT, error) {
 	// GitHub rejects timestamps that are not an integer.
 	now = now.Truncate(time.Second)
 	iat := now.Add(-30 * time.Second)
@@ -150,8 +150,8 @@ func (s *jwtRS256) Mint(ctx context.Context, iss uint64, now time.Time) (JWT, er
 	_, _ = encoder.Write(signature)
 	_ = encoder.Close()
 
-	// BearerToken has incomplete metadata, but it will be handled by Transport.JWT.
-	return JWT{Token: buf.String(), Exp: exp, IssuedAt: iat}, nil
+	// BearerToken may be missing some metadata, but it will be handled by Transport.JWT.
+	return JWT{Token: buf.String(), Exp: exp, IssuedAt: iat, AppID: iss}, nil
 }
 
 // NewJWT returns new JWT bearer token signed by the signer.
@@ -183,7 +183,7 @@ func NewJWT(ctx context.Context, appid uint64, signer crypto.Signer) (JWT, error
 				fmt.Errorf("githubapp(jwt): rsa keys size(%d) < 2048 bits", v.N.BitLen())
 		}
 		minter := &jwtRS256{internal: signer}
-		return minter.Mint(ctx, appid, time.Now())
+		return minter.MintJWT(ctx, appid, time.Now())
 	default:
 		return JWT{}, fmt.Errorf("githubapp(jwt): unsupported key type: %T", v)
 	}
