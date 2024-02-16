@@ -16,9 +16,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tprasadtp/go-githubapp"
 	"github.com/tprasadtp/go-githubapp/internal/api"
+	"github.com/tprasadtp/go-githubapp/internal/shared"
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
 )
 
@@ -149,9 +151,9 @@ func TestIntegration(t *testing.T) {
 			baseURLEnv, baseURLResponse.Status)
 	}
 
-	ctx := context.Background()
-
 	t.Run("InvalidAppPrivateKey", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
 		transport, err := githubapp.NewTransport(ctx, appID,
 			testkeys.RSA2048(), githubapp.WithEndpoint(baseURLEnv))
 		if err == nil {
@@ -164,6 +166,8 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("InvalidInstallation", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
 		transport, err := githubapp.NewTransport(ctx, appID,
 			testkeys.RSA2048(), githubapp.WithEndpoint(baseURLEnv),
 			githubapp.WithRepositories("tprasadtp/go-githubapp"),
@@ -179,6 +183,9 @@ func TestIntegration(t *testing.T) {
 
 	// Verify JWT returns valid app.
 	t.Run("VerifyJWT", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
+
 		transport, err := githubapp.NewTransport(ctx, appID, signer, githubapp.WithEndpoint(baseURLEnv))
 		if err != nil {
 			t.Fatalf("Failed to build transport: %s", err)
@@ -241,6 +248,9 @@ func TestIntegration(t *testing.T) {
 	// App has contents:read and issues:read permission
 	// limit to contents:read only.
 	t.Run("ScopedPermissions", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
+
 		transport, err := githubapp.NewTransport(
 			ctx, appID, signer,
 			githubapp.WithEndpoint(baseURLEnv),
@@ -297,6 +307,9 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("RepositoryNotAccessible", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
+
 		transport, err := githubapp.NewTransport(
 			ctx, appID, signer,
 			githubapp.WithEndpoint(baseURLEnv),
@@ -320,6 +333,9 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("TransportAttributes", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
+
 		transport, err := githubapp.NewTransport(
 			ctx, appID, signer,
 			githubapp.WithEndpoint(baseURLEnv),
@@ -348,6 +364,9 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("ScopedRepositories", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
+
 		transport, err := githubapp.NewTransport(
 			ctx, appID, signer,
 			githubapp.WithEndpoint(baseURLEnv),
@@ -404,6 +423,9 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("VerifyWithOwner", func(t *testing.T) {
+		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		defer cancel()
+
 		transport, err := githubapp.NewTransport(
 			ctx, appID, signer,
 			githubapp.WithEndpoint(baseURLEnv),
