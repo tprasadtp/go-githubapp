@@ -317,7 +317,7 @@ func BenchmarkMintJWT(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		v, _ = jwtSigner.Mint(ctx, 99, time.Now())
+		v, _ = jwtSigner.MintJWT(ctx, 99, time.Now())
 	}
 	_ = v
 }

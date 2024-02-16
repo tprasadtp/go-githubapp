@@ -454,7 +454,7 @@ func (t *Transport) JWT(ctx context.Context) (JWT, error) {
 		}
 	}
 
-	bearer, err := t.minter.Mint(ctx, t.appID, time.Now())
+	bearer, err := t.minter.MintJWT(ctx, t.appID, time.Now())
 	if err != nil {
 		return JWT{}, fmt.Errorf("githubapp: failed to mint JWT: %w", err)
 	}
