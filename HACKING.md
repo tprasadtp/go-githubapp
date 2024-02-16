@@ -22,12 +22,13 @@ __will be skipped__ if `GO_GITHUBAPP_TEST_API_URL` returns 5xx errors.
 
 > [!WARNING]
 >
-> Invalid environment variables result in test errors.
+> Invalid environment variables may result in test errors.
 
 
 | Environment Variable |  Description |
 | ---|---
 | `GO_GITHUBAPP_TEST_API_URL` | Github API endpoint. Defaults to `https://api.github.com/` if not set.
+| `GO_GITHUBAPP_TEST_TOKEN` | GitHub API token to use for checking if `GO_GITHUBAPP_TEST_API_URL` is valid and reachable.
 | `GO_GITHUBAPP_TEST_OWNER` | Organization name to be used _exclusively_ for testing.
 | `GO_GITHUBAPP_TEST_APP_ID` | GitHub app of the app to be used _exclusively_ for testing.
 | `GO_GITHUBAPP_TEST_APP_PRIVATE_KEY` | GitHub app's private key. __MUST__ be in PEM encoded PKCS1 format.

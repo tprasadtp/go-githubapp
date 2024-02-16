@@ -56,6 +56,14 @@ func TestInstallationToken(t *testing.T) {
 			t.Errorf("token should be invalid")
 		}
 	})
+	t.Run("missing-exp", func(t *testing.T) {
+		token := InstallationToken{
+			Token: "token",
+		}
+		if !token.IsValid() {
+			t.Errorf("token should be valid")
+		}
+	})
 	t.Run("now+59s", func(t *testing.T) {
 		now := time.Now().Truncate(time.Second)
 		token := InstallationToken{
@@ -259,6 +267,24 @@ func TestInstallationToken_Revoke(t *testing.T) {
 				return resp.Result(), nil
 			}),
 			ctx: nil,
+			ok:  true,
+		},
+		{
+			name: "missing-exp-on-token",
+			token: InstallationToken{
+				Token:          "ghs_token",
+				Server:         "http://mock-endpoint.go-githubapp.test",
+				AppID:          99,
+				InstallationID: 99,
+				AppName:        "gh-integration-tests-demo",
+				Owner:          "gh-integration-tests",
+			},
+			rt: api.RoundTripFunc(func(_ *http.Request) (*http.Response, error) {
+				resp := httptest.NewRecorder()
+				resp.WriteHeader(http.StatusNoContent)
+				return resp.Result(), nil
+			}),
+			ctx: context.Background(),
 			ok:  true,
 		},
 	}
@@ -690,7 +716,12 @@ func TestNewInstallationToken_MockServer(t *testing.T) {
 			server := httptest.NewServer(tc.handler)
 			t.Logf("Running test server - %s", server.URL)
 
-			defer server.Close()
+			t.Cleanup(func() {
+				if server != nil {
+					t.Logf("Stopping test server - %s", server.URL)
+					server.Close()
+				}
+			})
 
 			options := slices.Clone(tc.options)
 			options = append(

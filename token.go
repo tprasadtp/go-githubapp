@@ -82,7 +82,7 @@ func (t *InstallationToken) LogValue() slog.Value {
 
 // IsValid checks if [InstallationToken] is valid for at-least 60 seconds.
 func (t *InstallationToken) IsValid() bool {
-	return t.Token != "" && t.Exp.After(time.Now().Add(time.Minute))
+	return t.Token != "" && (t.Exp.After(time.Now().Add(time.Minute)) || t.Exp.IsZero())
 }
 
 // Revoke revokes the installation access token.
