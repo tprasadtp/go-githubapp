@@ -1,4 +1,4 @@
-# Example
+# Example [![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?labelColor=3a3a3a&logo=go&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp/examples/app-token)
 
 An example program to obtain installation access token for an app.
 

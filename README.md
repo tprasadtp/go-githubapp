@@ -2,15 +2,16 @@
 
 # go-githubapp
 
-[![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?logo=go&labelColor=3a3a3a&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
-[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-githubapp?logo=go&labelColor=3a3a3a&logoColor=959da5&color=00add8&label=go)](https://github.com/tprasadtp/go-githubapp/blob/master/go.mod)
+[![go-reference](https://img.shields.io/badge/godoc-reference-5272b4?labelColor=3a3a3a&logo=go&logoColor=959da5)](https://pkg.go.dev/github.com/tprasadtp/go-githubapp)
+[![go-version](https://img.shields.io/github/go-mod/go-version/tprasadtp/go-githubapp?labelColor=3a3a3a&color=00758D&label=go&logo=go&logoColor=959da5)](https://github.com/tprasadtp/go-githubapp/blob/master/go.mod)
+[![license](https://img.shields.io/github/license/tprasadtp/go-githubapp?labelColor=3a3a3a&color=00ADD8&logo=github&logoColor=959da5)](https://github.com/tprasadtp/go-githubapp/blob/master/LICENSE)
 [![test](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/test.yml)
 [![lint](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/lint.yml)
 [![release](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml/badge.svg)](https://github.com/tprasadtp/go-githubapp/actions/workflows/release.yml)
-[![license](https://img.shields.io/github/license/tprasadtp/go-githubapp?logo=github&labelColor=3a3a3a&logoColor=959da5)](https://github.com/tprasadtp/go-githubapp/blob/master/LICENSE)
-[![version](https://img.shields.io/github/v/tag/tprasadtp/go-githubapp?label=version&sort=semver&logo=semver&labelColor=3a3a3a&logoColor=959da5&color=ce3262)](https://github.com/tprasadtp/go-githubapp/releases)
+[![version](https://img.shields.io/github/v/tag/tprasadtp/go-githubapp?label=version&sort=semver&labelColor=3a3a3a&color=ce3262&logo=semver&logoColor=959da5)](https://github.com/tprasadtp/go-githubapp/releases)
 
 </div>
+
 
 HTTP Round Tripper to authenticate to GitHub as GitHub app and utilities for WebHook Verification. Supports authenticating with Installation Token and JWT.
 
@@ -29,7 +30,7 @@ import (
 )
 
 func main() {
-	rt, err := githubapp.NewTransport(ctx, appID, signer,
+	transport, err := githubapp.NewTransport(ctx, appID, signer,
         githubapp.WithOwner("username"),
         githubapp.WithRepositories("repository"),
         githubapp.WithPermissions("contents:read"),
@@ -37,7 +38,7 @@ func main() {
 
     // Build an HTTP client with custom round tripper.
     client := &http.Client{
-        Transport: rt,
+        Transport: transport,
     }
 
     // Try to fetch README for the repository.
@@ -57,8 +58,8 @@ func main() {
 - This library is designed to provide automatic authentication for [google/go-github],
 [github.com/shurcooL/githubv4] or your own HTTP client.
 - [Transport] implements [http.RoundTripper] which can authenticate transparently.
-It _will_ override `Authorization` header. None of the other headers are modified. Thus,
-It is user's responsibility to set appropriate headers like user agent etc. as required.
+It _will_ override `Authorization` header. None of the other headers are modified.
+It is user's responsibility to set appropriate headers (like user agent etc.) as required.
 
 See [API docs](https://pkg.go.dev/github.com/tprasadtp/go-githubapp) for more info and examples.
 
