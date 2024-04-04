@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // An example CLI which can fetch installation tokens for a GitHub app.
-package main // import "github.com/tprasadtp/go-githubapp/examples/app-token"
+package main
 
 import (
 	"context"

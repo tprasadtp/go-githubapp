@@ -20,8 +20,8 @@ import (
 
 	"github.com/tprasadtp/go-githubapp"
 	"github.com/tprasadtp/go-githubapp/internal/api"
-	"github.com/tprasadtp/go-githubapp/internal/shared"
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
+	"github.com/tprasadtp/go-githubapp/internal/testutils"
 )
 
 // This tests makes live API calls to default GitHub api endpoint.
@@ -109,8 +109,8 @@ func TestIntegration(t *testing.T) {
 	// Get token from env variable.
 	//
 	// API endpoint is usually rate limited. On CI/CD systems using a NAT gateway
-	// or a proxy, this can lead to errors due to GitHub servers seeing same IP address.
-	// To avoid it authenticate the requests. This token need not have any permissions,
+	// or a proxy, this can lead to errors due to GitHub servers seeing the same IP.
+	// To avoid it, authenticate the requests. This token need not have any permissions,
 	// it just needs to be a valid token.
 	var githubTokenEnv string
 
@@ -134,7 +134,9 @@ func TestIntegration(t *testing.T) {
 		req.Header.Add(api.AuthzHeader, fmt.Sprintf("Bearer: %s", githubTokenEnv))
 	}
 
-	baseURLResponse, err := http.DefaultClient.Do(req)
+	client := http.Client{}
+
+	baseURLResponse, err := client.Do(req)
 	if err != nil {
 		t.Skipf("Skip => REST API endpoint(%s) is not reachable: %s", baseURLEnv, err)
 	}
@@ -152,7 +154,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	t.Run("InvalidAppPrivateKey", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 		transport, err := githubapp.NewTransport(ctx, appID,
 			testkeys.RSA2048(), githubapp.WithEndpoint(baseURLEnv))
@@ -166,7 +168,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("InvalidInstallation", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 		transport, err := githubapp.NewTransport(ctx, appID,
 			testkeys.RSA2048(), githubapp.WithEndpoint(baseURLEnv),
@@ -183,7 +185,7 @@ func TestIntegration(t *testing.T) {
 
 	// Verify JWT returns valid app.
 	t.Run("VerifyJWT", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 
 		transport, err := githubapp.NewTransport(ctx, appID, signer, githubapp.WithEndpoint(baseURLEnv))
@@ -248,7 +250,7 @@ func TestIntegration(t *testing.T) {
 	// App has contents:read and issues:read permission
 	// limit to contents:read only.
 	t.Run("ScopedPermissions", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 
 		transport, err := githubapp.NewTransport(
@@ -307,7 +309,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("RepositoryNotAccessible", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 
 		transport, err := githubapp.NewTransport(
@@ -333,7 +335,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("TransportAttributes", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 
 		transport, err := githubapp.NewTransport(
@@ -364,7 +366,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("ScopedRepositories", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 
 		transport, err := githubapp.NewTransport(
@@ -423,7 +425,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("VerifyWithOwner", func(t *testing.T) {
-		ctx, cancel := shared.TestingCtx(t, time.Minute)
+		ctx, cancel := testutils.TestingContext(t, time.Minute)
 		defer cancel()
 
 		transport, err := githubapp.NewTransport(
