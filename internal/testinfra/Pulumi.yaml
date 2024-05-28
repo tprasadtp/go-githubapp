@@ -1,11 +1,9 @@
 name: testinfra
 runtime: yaml
 description: Create repositories required for integration testing tprasadtp/go-githubapp.
-config:
-  secret: false
+variables:
   repo-readme:
-    type: string
-    default: |
+    fn::stringAsset: |
       # About This Repository
 
       This repository is used for integration tests for [github.com/tprasadtp/go-githubapp].

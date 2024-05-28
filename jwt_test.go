@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tprasadtp/go-githubapp/internal/api"
 	"github.com/tprasadtp/go-githubapp/internal/testkeys"
 )
 
@@ -121,12 +122,12 @@ func TestJWTSignerRS256_Valid(t *testing.T) {
 			if err != nil {
 				t.Errorf("JWT header is not base64 url encoded: %s", err)
 			}
-			header := jwtHeader{}
+			header := api.JWTHeader{}
 			err = json.Unmarshal(headerDecoded, &header)
 			if err != nil {
 				t.Errorf("JWT header not JSON encoded: %s", err)
 			}
-			expectedHeader := jwtHeader{Alg: "RS256", Type: "JWT"}
+			expectedHeader := api.JWTHeader{Alg: "RS256", Type: "JWT"}
 			if !reflect.DeepEqual(expectedHeader, header) {
 				t.Errorf("expected JWT header=%v, got=%v", expectedHeader, header)
 			}
@@ -136,7 +137,7 @@ func TestJWTSignerRS256_Valid(t *testing.T) {
 			if err != nil {
 				t.Errorf("JWT payload is not base64 url encoded: %s", err)
 			}
-			payload := jwtPayload{}
+			payload := api.JWTPayload{}
 			err = json.Unmarshal(payloadDecoded, &payload)
 			if err != nil {
 				t.Errorf("JWT payload not JSON encoded: %s", err)

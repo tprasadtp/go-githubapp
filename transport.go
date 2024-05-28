@@ -161,9 +161,9 @@ func NewTransport(ctx context.Context, appid uint64, signer crypto.Signer, opts 
 		}
 		t.minter = &jwtRS256{internal: signer}
 	case *ecdsa.PublicKey:
-		return nil, fmt.Errorf("githubapp: ECDSA keys are not supported")
+		return nil, errors.New("githubapp: ECDSA keys are not supported")
 	case *ed25519.PublicKey, ed25519.PublicKey:
-		return nil, fmt.Errorf("githubapp: ED-25519 keys are not supported")
+		return nil, errors.New("githubapp: ED-25519 keys are not supported")
 	default:
 		return nil, fmt.Errorf("githubapp: unknown key type: %T", v)
 	}
@@ -386,7 +386,7 @@ func (t *Transport) fetchBotUserID(ctx context.Context, client *http.Client) err
 	}
 
 	if user.ID == nil || user.Login == nil {
-		return fmt.Errorf("missing user id or login in API response")
+		return errors.New("missing user id or login in API response")
 	}
 
 	t.botUsername = *user.Login
@@ -418,20 +418,20 @@ func (t *Transport) checkInstallationPermissions(permissions map[string]string) 
 		// if write level is requested, installation permission on app can be 'write' or 'admin'.
 		// if read level is requested, installation permission can be either 'read', 'write' or 'admin'.
 		switch scopeLevel {
-		case "admin":
-			if installLevel != "admin" {
+		case api.PermissionLevelAdmin:
+			if installLevel != api.PermissionLevelAdmin {
 				missing = append(missing, fmt.Sprintf("%s:%s",
 					scopeName, scopeLevel))
 			}
-		case "write":
+		case api.PermissionLevelWrite:
 			switch installLevel {
-			case "write", "admin":
+			case api.PermissionLevelWrite, api.PermissionLevelAdmin:
 			default:
 				missing = append(missing, fmt.Sprintf("%s:%s", scopeName, scopeLevel))
 			}
-		case "read":
+		case api.PermissionLevelRead:
 			switch installLevel {
-			case "read", "write", "admin":
+			case api.PermissionLevelRead, api.PermissionLevelWrite, api.PermissionLevelAdmin:
 			default:
 				missing = append(missing, fmt.Sprintf("%s:%s", scopeName, scopeLevel))
 			}
@@ -469,7 +469,7 @@ func (t *Transport) JWT(ctx context.Context) (JWT, error) {
 // a new token, thus callers can safely revoke the token whenever required.
 func (t *Transport) InstallationToken(ctx context.Context) (InstallationToken, error) {
 	if t.installID == 0 {
-		return InstallationToken{}, fmt.Errorf("githubapp: installation id is not configured")
+		return InstallationToken{}, errors.New("githubapp: installation id is not configured")
 	}
 
 	buf, err := json.Marshal(api.InstallationTokenRequest{
@@ -584,7 +584,7 @@ func (t *Transport) installationAuthzHeaderValue(ctx context.Context) (string, e
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req == nil {
-		return nil, fmt.Errorf("githubapp(RoundTrip): request is nil")
+		return nil, errors.New("githubapp(RoundTrip): request is nil")
 	}
 
 	if !strings.EqualFold(t.baseURL.Host, req.URL.Host) {

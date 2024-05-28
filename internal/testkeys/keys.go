@@ -18,6 +18,7 @@ import (
 	"sync"
 )
 
+//nolint:gochecknoglobals
 var (
 	rsa1024Once   sync.Once
 	rsa2048Once   sync.Once
@@ -25,6 +26,7 @@ var (
 	ed25519Once   sync.Once
 )
 
+//nolint:gochecknoglobals
 var (
 	rsa1024Private   *rsa.PrivateKey
 	rsa2048Private   *rsa.PrivateKey

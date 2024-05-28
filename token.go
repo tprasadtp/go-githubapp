@@ -6,6 +6,7 @@ package githubapp
 import (
 	"context"
 	"crypto"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -98,7 +99,7 @@ func (t *InstallationToken) revoke(ctx context.Context, rt http.RoundTripper) er
 	}
 
 	if !t.IsValid() {
-		return fmt.Errorf("githubapp: cannot revoke already invalid token")
+		return errors.New("githubapp: cannot revoke already invalid token")
 	}
 
 	server := t.Server

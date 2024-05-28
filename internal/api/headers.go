@@ -3,8 +3,6 @@
 
 package api
 
-import "fmt"
-
 // Common headers used by this package.
 const (
 	VersionHeader      = "X-GitHub-Api-Version"
@@ -35,5 +33,5 @@ func AuthzHeaderValue(token string) string {
 	if token == "" {
 		return ""
 	}
-	return fmt.Sprintf("Bearer %s", token)
+	return "Bearer " + token
 }

@@ -18,6 +18,8 @@ import (
 	"log/slog"
 	"strconv"
 	"time"
+
+	"github.com/tprasadtp/go-githubapp/internal/api"
 )
 
 var (
@@ -31,10 +33,10 @@ type JWT struct {
 	Token string `json:"token" yaml:"token"`
 
 	// GitHub app ID.
-	AppID uint64 `json:"app_id,omitempty" yaml:"appID,omitempty"`
+	AppID uint64 `json:"id,omitempty" yaml:"id,omitempty"`
 
 	// GitHub app name.
-	AppName string `json:"app_name,omitempty" yaml:"appName,omitempty"`
+	AppName string `json:"app,omitempty" yaml:"app,omitempty"`
 
 	// Token exp time.
 	Exp time.Time `json:"exp,omitempty" yaml:"exp,omitempty"`
@@ -46,8 +48,8 @@ type JWT struct {
 // LogValue implements [log/slog.LogValuer].
 func (t JWT) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.Uint64("app_id", t.AppID),
-		slog.String("app_name", t.AppName),
+		slog.Uint64("id", t.AppID),
+		slog.String("app", t.AppName),
 		slog.Time("exp", t.Exp),
 		slog.Time("iat", t.IssuedAt),
 		slog.String("token", "REDACTED"),
@@ -75,19 +77,6 @@ type jwtRS256 struct {
 	internal crypto.Signer
 }
 
-// JWT header. This is always of type RS256.
-type jwtHeader struct {
-	Type string `json:"type"`
-	Alg  string `json:"alg"`
-}
-
-// JWT Payload as required by GitHub app.
-type jwtPayload struct {
-	Issuer   string `json:"iss"`
-	IssuedAt int64  `json:"iat"`
-	Exp      int64  `json:"exp"`
-}
-
 // MintJWT mints new  JWT token.
 func (s *jwtRS256) MintJWT(ctx context.Context, iss uint64, now time.Time) (JWT, error) {
 	// GitHub rejects timestamps that are not an integer.
@@ -98,19 +87,15 @@ func (s *jwtRS256) MintJWT(ctx context.Context, iss uint64, now time.Time) (JWT,
 	buf := bytes.NewBuffer(make([]byte, 0, 1024))
 	encoder := base64.NewEncoder(base64.RawURLEncoding, buf)
 
-	// Encode JWT Header.
-	header, err := json.Marshal(&jwtHeader{Alg: "RS256", Type: "JWT"})
-	if err != nil {
-		return JWT{}, fmt.Errorf("githubapp(jwt): failed to encode JWT header: %w", err)
-	}
-	_, _ = encoder.Write(header)
-	_ = encoder.Close()
+	// Use pre-encoded JWT header.
+	// GitHub apps only support RS256 JWT.
+	buf.WriteString(api.EncodedJWTHeader)
 
 	// Write separator.
 	_ = buf.WriteByte('.')
 
 	// Encode JWT Payload.
-	payload, err := json.Marshal(&jwtPayload{
+	payload, err := json.Marshal(&api.JWTPayload{
 		Issuer:   strconv.FormatUint(iss, 10),
 		Exp:      exp.Unix(),
 		IssuedAt: iat.Unix(),
@@ -163,17 +148,12 @@ func (s *jwtRS256) MintJWT(ctx context.Context, iss uint64, now time.Time) (JWT,
 //   - RSA keys of length less than 2048 bits are not supported.
 //   - Only RSA keys are supported. Using ECDSA, ED25519 or other keys will return error.
 func NewJWT(ctx context.Context, appid uint64, signer crypto.Signer) (JWT, error) {
-	var err error
 	if signer == nil {
-		err = errors.Join(err, errors.New("no signer provided"))
+		return JWT{}, errors.New("githubapp(jwt): signer cannot be nil")
 	}
 
 	if appid == 0 {
-		err = errors.Join(err, errors.New("app id cannot be zero"))
-	}
-
-	if err != nil {
-		return JWT{}, fmt.Errorf("githubapp(jwt): failed to mint JWT: %w", err)
+		return JWT{}, errors.New("githubapp(jwt): appid cannot be zero")
 	}
 
 	switch v := signer.Public().(type) {

@@ -227,7 +227,7 @@ func WithInstallationID(id uint64) Option {
 	return &funcOption{
 		f: func(t *Transport) error {
 			if id == 0 {
-				return fmt.Errorf("installation id cannot be zero")
+				return errors.New("installation id cannot be zero")
 			}
 
 			// If installation id is already set, ensure they do not conflict.

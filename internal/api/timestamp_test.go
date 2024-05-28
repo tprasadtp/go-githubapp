@@ -20,6 +20,7 @@ const (
 	refUnixTimeStrMilliSeconds = `1136214245000`
 )
 
+//nolint:gochecknoglobals
 var (
 	refTimeGo       = time.Date(2006, time.January, 02, 15, 04, 05, 0, time.UTC)
 	refTimeUnixZero = time.Unix(0, 0).In(time.UTC)
